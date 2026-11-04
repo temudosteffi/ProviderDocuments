@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SOAP → REST Mapping — Notification API (.NET 10)</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.mermaid) { mermaid.initialize({ startOnLoad: true, theme: "neutral" }); }
+  });
+</script>
+<style>
+  :root {
+    --fg: #1b1f23; --muted: #57606a; --accent: #0b5cad; --accent2: #0a3d6e;
+    --border: #d0d7de; --bg-soft: #f6f8fa; --code-bg: #f3f4f6;
+    --warn-bg: #fff8e1; --warn-border: #e0b400;
+    --ok-bg: #e9f7ef; --ok-border: #1e8e5a;
+    --get: #1e8e5a; --post: #0b5cad; --put: #b45309; --del: #b42318;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--fg); line-height: 1.55; margin: 0; padding: 0 0 80px; background: #fff; }
+  header { background: linear-gradient(135deg, #0b5cad, #0a3d6e); color: #fff; padding: 32px 40px; }
+  header h1 { margin: 0 0 6px; font-size: 1.7rem; }
+  header p { margin: 0; opacity: 0.9; }
+  main { max-width: 1080px; margin: 0 auto; padding: 0 40px; }
+  h2 { margin-top: 42px; padding-bottom: 6px; border-bottom: 2px solid var(--border); color: var(--accent); }
+  h3 { margin-top: 28px; color: var(--accent2); }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-family: Consolas, "Courier New", monospace; font-size: 0.88em; }
+  pre { background: #0d1117; color: #e6edf3; border: 1px solid #30363d; border-radius: 6px; padding: 14px 16px; overflow-x: auto; font-size: 0.84rem; line-height: 1.5; }
+  pre code { background: none; padding: 0; color: inherit; }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 0.9rem; }
+  th, td { border: 1px solid var(--border); padding: 7px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--bg-soft); }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .muted { color: var(--muted); }
+  .note { background: var(--warn-bg); border-left: 4px solid var(--warn-border); padding: 12px 16px; border-radius: 4px; margin: 16px 0; }
+  .ok { background: var(--ok-bg); border-left: 4px solid var(--ok-border); padding: 12px 16px; border-radius: 4px; margin: 16px 0; }
+  .pill { display: inline-block; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 12px; padding: 1px 10px; font-size: 0.8rem; color: var(--muted); }
+  .mermaid { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin: 16px 0; }
+  footer { max-width: 1080px; margin: 40px auto 0; padding: 20px 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85rem; }
+  .m { font-weight: 700; font-size: 0.72rem; padding: 1px 7px; border-radius: 4px; color: #fff; letter-spacing: 0.3px; }
+  .m-get { background: var(--get); }
+  .m-post { background: var(--post); }
+  .m-put { background: var(--put); }
+  .m-del { background: var(--del); }
+</style>
+</head>
+<body>
+<header>
+  <h1>SOAP &rarr; REST Mapping</h1>
+  <p>Notification subsystem WCF operations mapped to a .NET 10 REST API</p>
+</header>
+
+<main>
+  <p class="muted">
+    Generated 2026-11-04 &middot; Source: <span class="pill">INotificationService + Query/Command/Event contracts</span>
+  </p>
+
+  <div class="ok">
+    <strong>Scope:</strong> All operations across the four WCF services — 23 on <code>INotificationService</code>,
+    plus <code>GetEvents</code> (query service), <code>AddEvent</code> (command service), and the event-distribution service —
+    mapped to REST routes for a .NET 10 API.
+  </div>
+
+  <h2>1. Guiding Principles</h2>
+  <ul>
+    <li>Reads &rarr; <span class="m m-get">GET</span>, creates &rarr; <span class="m m-post">POST</span>, updates &rarr; <span class="m m-put">PUT</span>, deletes &rarr; <span class="m m-del">DELETE</span> (current code makes everything POST).</li>
+    <li>Group by <strong>resource</strong> (events, subscribers, subscriptions, notifications) instead of four separate SOAP services.</li>
+    <li><code>tenantId</code> moves to a <strong>header</strong> (<code>X-Tenant-Id</code>) or route prefix, not a body/query param on every call.</li>
+    <li>"Search" operations (rich query objects) stay <span class="m m-post">POST</span> <code>.../search</code> because they carry complex filter bodies.</li>
+  </ul>
+
+  <h2>2. Four SOAP Services &rarr; REST Route Groups</h2>
+  <table>
+    <thead><tr><th>SOAP service</th><th>Becomes REST group</th></tr></thead>
+    <tbody>
+      <tr><td><code>/NotificationQueryService</code> (reads)</td><td><span class="m m-get">GET</span> routes under each resource</td></tr>
+      <tr><td><code>/NotificationCommandService</code> (writes)</td><td><span class="m m-post">POST</span>/<span class="m m-put">PUT</span>/<span class="m m-del">DELETE</span> routes under each resource</td></tr>
+      <tr><td><code>/NotificationService</code> (facade)</td><td>Split across resource groups + <code>/notifications</code> for sends</td></tr>
+      <tr><td><code>/NotificationEventService</code> (<code>IEventDistribution</code>)</td><td><strong>Not a REST endpoint</strong> — replaced by messaging/event bus</td></tr>
+    </tbody>
+  </table>
+
+  <h2>3. Events — <code>/api/events</code></h2>
+  <table>
+    <thead><tr><th>SOAP operation</th><th>REST equivalent</th></tr></thead>
+    <tbody>
+      <tr><td><code>CreateEvent(Event)</code></td><td><span class="m m-post">POST</span> <code>/api/events</code></td></tr>
+      <tr><td><code>UpdateEvent(Event)</code></td><td><span class="m m-put">PUT</span> <code>/api/events/{eventId}</code></td></tr>
+      <tr><td><code>DeleteEvent(eventId, userId)</code></td><td><span class="m m-del">DELETE</span> <code>/api/events/{eventId}</code></td></tr>
+      <tr><td><code>GetEvents(EventSearchCriteria)</code></td><td><span class="m m-get">GET</span> <code>/api/events?subsystem=&amp;hasSla=…</code></td></tr>
+      <tr><td><code>SearchEvents(EventQuery)</code> / <code>GetEvents(EventQuery)</code> <span class="muted">(query svc)</span></td><td><span class="m m-post">POST</span> <code>/api/events/search</code></td></tr>
+      <tr><td><code>GetEventNameDetails(tenantId)</code></td><td><span class="m m-get">GET</span> <code>/api/events/names</code></td></tr>
+      <tr><td><code>AddEvent(AddEventCommand)</code> <span class="muted">(command svc)</span></td><td><span class="m m-post">POST</span> <code>/api/events</code> (CQRS command behind it)</td></tr>
+    </tbody>
+  </table>
+
+  <h2>4. Posted Events / Occurrences — <code>/api/events/occurrences</code></h2>
+  <table>
+    <thead><tr><th>SOAP operation</th><th>REST equivalent</th></tr></thead>
+    <tbody>
+      <tr><td><code>PostEvent(eventName, subsystem, messageBody, …)</code></td><td><span class="m m-post">POST</span> <code>/api/events/occurrences</code></td></tr>
+      <tr><td><code>GetPostedEvents(PostedEventSearchCriteria)</code></td><td><span class="m m-get">GET</span> <code>/api/events/occurrences?name=&amp;subsystem=…</code></td></tr>
+      <tr><td><code>SearchPostedEvents(PostedEventQuery)</code></td><td><span class="m m-post">POST</span> <code>/api/events/occurrences/search</code></td></tr>
+      <tr><td><code>SendAndPostSubscribedEvent(SendAndPostSubscribedEventCriteria)</code></td><td><span class="m m-post">POST</span> <code>/api/events/occurrences/send-and-post</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>5. Subscribers — <code>/api/subscribers</code></h2>
+  <table>
+    <thead><tr><th>SOAP operation</th><th>REST equivalent</th></tr></thead>
+    <tbody>
+      <tr><td><code>CreateSubscriber(Subscription)</code></td><td><span class="m m-post">POST</span> <code>/api/subscribers</code></td></tr>
+      <tr><td><code>UpdateSubscriber(Subscription)</code></td><td><span class="m m-put">PUT</span> <code>/api/subscribers/{subscriberId}</code></td></tr>
+      <tr><td><code>DeleteSubscriber(subscriberId, userId)</code></td><td><span class="m m-del">DELETE</span> <code>/api/subscribers/{subscriberId}</code></td></tr>
+      <tr><td><code>GetSubscriberDetails(SubscriberSearchCriteria)</code></td><td><span class="m m-get">GET</span> <code>/api/subscribers?email=&amp;sms=…</code></td></tr>
+      <tr><td><code>SearchSubscriberDetails(SubscriberQuery)</code></td><td><span class="m m-post">POST</span> <code>/api/subscribers/search</code></td></tr>
+      <tr><td><code>GetSubscriberEmailDetails(tenantId)</code></td><td><span class="m m-get">GET</span> <code>/api/subscribers/email-details</code></td></tr>
+      <tr><td><code>GetSubscriberSMSDetails()</code></td><td><span class="m m-get">GET</span> <code>/api/subscribers/sms-details</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>6. Subscriptions — <code>/api/subscriptions</code></h2>
+  <table>
+    <thead><tr><th>SOAP operation</th><th>REST equivalent</th></tr></thead>
+    <tbody>
+      <tr><td><code>CreateSubscription(Subscription)</code></td><td><span class="m m-post">POST</span> <code>/api/subscriptions</code></td></tr>
+      <tr><td><code>UpdateSubscription(Subscription)</code></td><td><span class="m m-put">PUT</span> <code>/api/subscriptions/{subscriptionId}</code></td></tr>
+      <tr><td><code>GetSubscriptions(SubscriptionSearchCriteria)</code></td><td><span class="m m-get">GET</span> <code>/api/subscriptions?eventId=&amp;subscriberId=…</code></td></tr>
+      <tr><td><code>SearchEventSubscriptions(SubscriptionQuery)</code></td><td><span class="m m-post">POST</span> <code>/api/subscriptions/search</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>7. Notifications (the sends) — <code>/api/notifications</code></h2>
+  <table>
+    <thead><tr><th>SOAP operation</th><th>REST equivalent</th></tr></thead>
+    <tbody>
+      <tr><td><code>SendEmail(tenantId, subject, emailBody, addressList, …)</code></td><td><span class="m m-post">POST</span> <code>/api/notifications/email</code></td></tr>
+      <tr><td><code>SendSmsText(tenantId, textMessage, toPhoneNumber)</code></td><td><span class="m m-post">POST</span> <code>/api/notifications/sms</code></td></tr>
+    </tbody>
+  </table>
+  <p class="muted">These two matter most for the modernization — they map cleanly to the MailKit email sender and the MailKit email-to-SMS sender.</p>
+
+  <h2>8. Event Distribution — NOT a REST Endpoint</h2>
+  <div class="note">
+    <code>/NotificationEventService</code> (<code>IEventDistribution</code>) is internal event-sourcing plumbing, not a public API.
+    In .NET 10 you would replace it with a <strong>message broker / event bus</strong> (e.g. Azure Service Bus, RabbitMQ) or
+    in-process domain events — services publish/subscribe instead of calling a SOAP endpoint. Do not expose it as REST.
+  </div>
+
+  <h2>9. REST Surface at a Glance</h2>
+  <div class="mermaid">
+flowchart TB
+    subgraph API[".NET 10 REST API"]
+      E["/api/events + /occurrences"]
+      SUB["/api/subscribers"]
+      SUBS["/api/subscriptions"]
+      N["/api/notifications/email | /sms"]
+    end
+    BUS[["Event bus / messaging&lt;br/&gt;(replaces IEventDistribution)"]]
+    E --&gt; BUS
+    N --&gt; SENDERS[IEmailSender / ISmsSender → SMTP]
+  </div>
+
+  <h2>10. Example — the Two That Matter Most</h2>
+  <pre><code>POST /api/notifications/email
+X-Tenant-Id: T001
+Content-Type: application/json
+
+{ "subject": "Enrollment approved", "body": "&lt;h1&gt;Welcome&lt;/h1&gt;", "isHtml": true,
+  "to": [{ "email": "provider@hpe.com", "displayName": "Dr. Smith" }] }</code></pre>
+  <pre><code>POST /api/notifications/sms
+X-Tenant-Id: T001
+Content-Type: application/json
+
+{ "textMessage": "Your enrollment is approved.", "toPhoneNumber": "9722222222", "carrierDomain": "txt.att.net" }</code></pre>
+
+  <h2>11. Notes on the Translation</h2>
+  <ul>
+    <li><strong>CQRS preserved:</strong> write endpoints (<span class="m m-post">POST</span>/<span class="m m-put">PUT</span>/<span class="m m-del">DELETE</span>) route to command handlers; <span class="m m-get">GET</span> and <code>/search</code> route to query handlers — same <code>TryRoute</code> idea, behind REST.</li>
+    <li><strong><code>tenantId</code></strong> repeated in nearly every SOAP operation becomes a single <code>X-Tenant-Id</code> header + middleware that calls the per-tenant config load (today's <code>InitializeAppConfigManager(tenantId)</code>).</li>
+    <li><strong>Fault contracts</strong> (<code>ServiceException</code>) become standard HTTP problem responses (<code>400</code>/<code>404</code>/<code>500</code> with a problem-details body).</li>
+    <li><strong>Search vs filter:</strong> simple reads use query-string <span class="m m-get">GET</span>; the rich <code>*Query</code> objects keep a <span class="m m-post">POST</span> <code>.../search</code> body.</li>
+  </ul>
+
+  <div class="ok">
+    <strong>Bottom line:</strong> four SOAP services collapse into four REST resource groups plus a messaging replacement for
+    event distribution — with proper HTTP verbs, header-based tenancy, and CQRS preserved behind the endpoints.
+  </div>
+</main>
+
+<footer>
+  SOAP &rarr; REST Mapping &middot; Notification Subsystem .NET 10 Modernization &middot; Gainwell Technologies.
+  Diagrams rendered client-side with Mermaid.
+</footer>
+</body>
+</html>

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Notifications Database — Deep Dive (Schema &amp; Tables)</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.mermaid) { mermaid.initialize({ startOnLoad: true, theme: "neutral" }); }
+  });
+</script>
+<style>
+  :root {
+    --fg: #1b1f23; --muted: #57606a; --accent: #0b5cad; --accent2: #0a3d6e;
+    --border: #d0d7de; --bg-soft: #f6f8fa; --code-bg: #f3f4f6;
+    --warn-bg: #fff8e1; --warn-border: #e0b400;
+    --ok-bg: #e9f7ef; --ok-border: #1e8e5a;
+    --pk: #b45309; --fk: #0b5cad;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--fg); line-height: 1.55; margin: 0; padding: 0 0 80px; background: #fff; }
+  header { background: linear-gradient(135deg, #0b5cad, #0a3d6e); color: #fff; padding: 32px 40px; }
+  header h1 { margin: 0 0 6px; font-size: 1.7rem; }
+  header p { margin: 0; opacity: 0.9; }
+  main { max-width: 1080px; margin: 0 auto; padding: 0 40px; }
+  h2 { margin-top: 42px; padding-bottom: 6px; border-bottom: 2px solid var(--border); color: var(--accent); }
+  h3 { margin-top: 28px; color: var(--accent2); }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-family: Consolas, "Courier New", monospace; font-size: 0.88em; }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 0.9rem; }
+  th, td { border: 1px solid var(--border); padding: 7px 10px; text-align: left; vertical-align: top; }
+  th { background: var(--bg-soft); }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .muted { color: var(--muted); }
+  .note { background: var(--warn-bg); border-left: 4px solid var(--warn-border); padding: 12px 16px; border-radius: 4px; margin: 16px 0; }
+  .ok { background: var(--ok-bg); border-left: 4px solid var(--ok-border); padding: 12px 16px; border-radius: 4px; margin: 16px 0; }
+  .pill { display: inline-block; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 12px; padding: 1px 10px; font-size: 0.8rem; color: var(--muted); }
+  .mermaid { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin: 16px 0; }
+  footer { max-width: 1080px; margin: 40px auto 0; padding: 20px 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85rem; }
+  .tag-pk { color: var(--pk); font-weight: 700; font-size: 0.75rem; }
+  .tag-fk { color: var(--fk); font-weight: 700; font-size: 0.75rem; }
+  .tbl-title { display:flex; align-items:center; gap:10px; }
+  .tbl-num { background: var(--accent); color:#fff; border-radius:50%; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:700; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Notifications Database — Deep Dive</h1>
+  <p>Database, schema, tables &amp; columns &middot; evidence-based from entities + DDL</p>
+</header>
+
+<main>
+  <p class="muted">
+    Generated 2026-11-04 &middot; Source: <span class="filepath">HPP.NotificationServices.DataAccess</span> entities + Oracle/MSSQL scripts
+    &middot; <span class="pill">Current state</span>
+  </p>
+
+  <h2>1. Database Identity</h2>
+  <table>
+    <thead><tr><th>Item</th><th>Value</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr><td>Database / catalog name</td><td><code>UA3_NOTIFICATIONS</code></td><td>SQL <code>Initial Catalog=UA3_NOTIFICATIONS</code>; Oracle schema <code>UA3_NOTIFICATIONS</code></td></tr>
+      <tr><td>Platforms</td><td><strong>Oracle</strong> and <strong>Azure SQL / MSSQL</strong> (dual-target)</td><td><code>components/db/oracle</code> + <code>components/db/mssql</code></td></tr>
+      <tr><td>Default EF schema</td><td><code>NOTIFICATIONS_WRK</code> (override via <code>DefaultConnectionSchema</code>)</td><td><code>NotificationsDbContext.OnModelCreating</code></td></tr>
+      <tr><td>Separate tenant DB</td><td><code>UA3_TENANT</code> (tenant config, not notification data)</td><td><code>TenantConfig</code> connection strings</td></tr>
+      <tr><td>Key type (current)</td><td><code>Guid</code> → <code>RAW(16)</code> (Oracle) / <code>uniqueidentifier</code> (SQL)</td><td>entity <code>[Key]</code> + Oracle <code>raw(16)</code> DDL</td></tr>
+    </tbody>
+  </table>
+  <div class="note">
+    <strong>Two code trees differ:</strong> the legacy <code>HP.*</code> Oracle schema used integer <code>NUMBER(9,0)</code> IDs with sequences;
+    the current <code>HPP.*</code> schema uses <strong>GUIDs</strong> (<code>RAW(16)</code>). This document reflects the current state.
+  </div>
+
+  <h2>2. The 7 Tables</h2>
+  <p>6 EF-mapped tables plus 1 lookup table (<code>CD_EVENT_CATEGORY</code>, accessed by raw SQL, not a <code>DbSet</code>).</p>
+  <div class="mermaid">
+erDiagram
+    CD_EVENT_CATEGORY ||--o{ EVENT : "CATEGORY_CD"
+    CD_EVENT_CATEGORY ||--o{ EVENT_SUBSCRIPTION : "CATEGORY_CD"
+    EVENT ||--o{ EVENT_TRACKING : "EVENT_ID"
+    EVENT ||--o{ EVENT_SUBSCRIPTION : "EVENT_ID"
+    SUBSCRIBER ||--o{ EVENT_SUBSCRIPTION : "SUBSCRIBER_ID"
+    NOTIFICATION_AUDIT ||--o{ RECEIVER_AUDIT : "AUDIT_ID"
+  </div>
+  <p>Two logical groups:</p>
+  <ul>
+    <li><strong>Configuration / runtime</strong> (who/what/when): <code>CD_EVENT_CATEGORY</code>, <code>EVENT</code>, <code>SUBSCRIBER</code>, <code>EVENT_SUBSCRIPTION</code>, <code>EVENT_TRACKING</code></li>
+    <li><strong>Audit</strong> (what was actually sent): <code>NOTIFICATION_AUDIT</code>, <code>RECEIVER_AUDIT</code></li>
+  </ul>
+
+  <h2><span class="tbl-title"><span class="tbl-num">1</span> EVENT — catalog of notifiable events</span></h2>
+  <p>Defines each event type a subsystem can raise, plus its optional SLA schedule.</p>
+  <table>
+    <thead><tr><th>Column</th><th>Type</th><th>Null</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>EVENT_ID</code> <span class="tag-pk">PK</span></td><td>Guid</td><td>No</td><td>Unique event identifier</td></tr>
+      <tr><td><code>EVENT_NAME</code></td><td>varchar(250)</td><td>No</td><td>Event name (e.g. <code>PEWrkflw…</code>)</td></tr>
+      <tr><td><code>SUBSYSTEM</code></td><td>varchar(50)</td><td>No</td><td>Owning module (e.g. Provider Enrollment)</td></tr>
+      <tr><td><code>DSC_DETAILS</code></td><td>varchar(250)</td><td>Yes</td><td>Human description</td></tr>
+      <tr><td><code>DSC_MESSAGE_TEMPLATE</code></td><td>varchar(4000)</td><td>Yes</td><td>Message body template sent to recipients</td></tr>
+      <tr><td><code>CATEGORY_CD</code> <span class="tag-fk">FK</span></td><td>varchar(10)</td><td>No</td><td>→ <code>CD_EVENT_CATEGORY.CATEGORY_CD</code></td></tr>
+      <tr><td><code>EVENT_HAS_SLA</code></td><td>char(1)</td><td>Yes</td><td><code>Y/N</code> — is this event SLA-monitored</td></tr>
+      <tr><td><code>RUN_ON_MONDAY … RUN_ON_SUNDAY</code></td><td>char(1) each</td><td>Yes</td><td>Per-weekday schedule flags (<code>Y/N</code>)</td></tr>
+      <tr><td><code>RUN_FIRST_OF_MONTH</code> / <code>RUN_LAST_OF_MONTH</code></td><td>char(1)</td><td>Yes</td><td>Month-boundary schedule flags</td></tr>
+      <tr><td><code>RUN_DAY_MONTH_CD</code></td><td>byte</td><td>Yes</td><td>Specific day-of-month to run</td></tr>
+      <tr><td><code>RUNTIME_24HHMM</code></td><td>varchar(4)</td><td>Yes</td><td>Scheduled time, <code>HHmm</code></td></tr>
+      <tr><td><code>RUN_SCHEDULE_CD</code></td><td>varchar(50)</td><td>Yes</td><td>Schedule code</td></tr>
+      <tr><td><code>IS_ACTIVE</code></td><td>bool</td><td>Yes</td><td>Soft active flag</td></tr>
+      <tr><td><code>CREATION_TS</code> / <code>LAST_MODIFIED_TS</code></td><td>datetime</td><td>Yes</td><td>Audit timestamps</td></tr>
+      <tr><td><code>OPERATOR_ID</code></td><td>varchar(250)</td><td>No</td><td>User who created/updated</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">Schedule columns feed the <strong>SLA monitoring</strong> batch (<code>ProcessScheduledEvent</code>) that detects events that failed to occur on time.</p>
+
+  <h2><span class="tbl-title"><span class="tbl-num">2</span> CD_EVENT_CATEGORY — category lookup</span></h2>
+  <p>Reference/code table for event categories. Not an EF <code>DbSet</code>; read via raw SQL join.</p>
+  <table>
+    <thead><tr><th>Column</th><th>Type</th><th>Null</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>CATEGORY_CD</code> <span class="tag-pk">PK</span></td><td>code</td><td>No</td><td>Category code</td></tr>
+      <tr><td><code>CATEGORY_TXT</code></td><td>varchar(50)</td><td>No</td><td>Category display name</td></tr>
+      <tr><td><code>CATEGORY_DSC</code></td><td>varchar(200)</td><td>No</td><td>Category description</td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="tbl-title"><span class="tbl-num">3</span> SUBSCRIBER — recipients</span></h2>
+  <p>One row per recipient, holding email and SMS (carrier-gateway) address.</p>
+  <table>
+    <thead><tr><th>Column</th><th>Type</th><th>Null</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>SUBSCRIBER_ID</code> <span class="tag-pk">PK</span></td><td>Guid</td><td>No</td><td>Unique subscriber id</td></tr>
+      <tr><td><code>EMAIL_TXT</code></td><td>varchar(50)</td><td>No</td><td>Recipient email address</td></tr>
+      <tr><td><code>SMS_ADDRESS_TXT</code></td><td>varchar(50)</td><td>No*</td><td><strong>Email-to-SMS gateway address</strong> (e.g. <code>8505674839@txt.att.net</code>)</td></tr>
+      <tr><td><code>IS_ACTIVE</code></td><td>bool</td><td>Yes</td><td>Soft active flag</td></tr>
+      <tr><td><code>CREATION_TS</code> / <code>LAST_MODIFIED_TS</code></td><td>datetime</td><td>Yes</td><td>Audit timestamps</td></tr>
+      <tr><td><code>OPERATOR_ID</code></td><td>varchar(200)</td><td>No</td><td>User who created/updated</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">* Required in the EF entity, nullable in the original Oracle DDL. <code>SMS_ADDRESS_TXT</code> is an email address to a carrier gateway, not a phone number — which is why SMS flows over SMTP today.</p>
+
+  <h2><span class="tbl-title"><span class="tbl-num">4</span> EVENT_SUBSCRIPTION — links subscribers to events</span></h2>
+  <p>The join/bridge table: which subscriber wants which event, and whether to also send SMS.</p>
+  <table>
+    <thead><tr><th>Column</th><th>Type</th><th>Null</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>EVENT_SUBSCRIPTION_ID</code> <span class="tag-pk">PK</span></td><td>Guid</td><td>No</td><td>Unique subscription id</td></tr>
+      <tr><td><code>EVENT_ID</code> <span class="tag-fk">FK</span></td><td>Guid</td><td>Yes</td><td>→ <code>EVENT.EVENT_ID</code></td></tr>
+      <tr><td><code>SUBSCRIBER_ID</code> <span class="tag-fk">FK</span></td><td>Guid</td><td>Yes</td><td>→ <code>SUBSCRIBER.SUBSCRIBER_ID</code></td></tr>
+      <tr><td><code>SEND_SMS</code></td><td>char(1)</td><td>Yes</td><td><code>Y/N</code> — also send SMS in addition to email</td></tr>
+      <tr><td><code>SUBSYSTEM</code></td><td>varchar(50)</td><td>Yes</td><td>Optional subsystem filter</td></tr>
+      <tr><td><code>EVENT_NAME_CONTAINS_TXT</code></td><td>varchar(50)</td><td>Yes</td><td>Optional wildcard match on event name</td></tr>
+      <tr><td><code>CATEGORY_CD</code></td><td>varchar(10)</td><td>Yes</td><td>Optional category filter</td></tr>
+      <tr><td><code>IS_ACTIVE</code></td><td>bool</td><td>Yes</td><td>Soft active flag</td></tr>
+      <tr><td><code>CREATION_TS</code> / <code>LAST_MODIFIED_TS</code></td><td>datetime</td><td>Yes</td><td>Audit timestamps</td></tr>
+      <tr><td><code>OPERATOR_ID</code></td><td>varchar(200)</td><td>No</td><td>User who created/updated</td></tr>
+    </tbody>
+  </table>
+  <p class="muted"><code>SEND_SMS = 'Y'</code> is exactly what drives the second SMTP send (email-to-SMS) in <code>SendNotificationsForEvent</code>.</p>
+
+  <h2><span class="tbl-title"><span class="tbl-num">5</span> EVENT_TRACKING — occurrences / posted events</span></h2>
+  <p>Records each time an event is posted/occurs; also used to detect missed SLAs.</p>
+  <table>
+    <thead><tr><th>Column</th><th>Type</th><th>Null</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>EVENT_TRACK_ID</code> <span class="tag-pk">PK</span></td><td>Guid</td><td>No</td><td>Unique occurrence id</td></tr>
+      <tr><td><code>EVENT_ID</code> <span class="tag-fk">FK</span></td><td>Guid</td><td>No</td><td>→ <code>EVENT.EVENT_ID</code></td></tr>
+      <tr><td><code>MESSAGE</code></td><td>varchar(4000)</td><td>Yes</td><td>Custom message captured at occurrence</td></tr>
+      <tr><td><code>ARCHIVE</code></td><td>varchar(1)</td><td>No</td><td>Archive flag</td></tr>
+      <tr><td><code>EVENT_CREATED</code></td><td>datetime</td><td>Yes</td><td>When the event actually occurred</td></tr>
+      <tr><td><code>NOTIFICATION_CREATED</code></td><td>datetime</td><td>Yes</td><td>When notifications were generated</td></tr>
+      <tr><td><code>PROCESS_RUN</code></td><td>datetime</td><td>Yes</td><td>Processing run timestamp</td></tr>
+      <tr><td><code>MISSED_SLA</code></td><td>char(1)</td><td>Yes</td><td><code>Y/N</code> — event missed its SLA</td></tr>
+      <tr><td><code>PREVIOUS_EVENT_TRACK</code></td><td>Guid</td><td>—</td><td>Link to prior occurrence (chaining)</td></tr>
+      <tr><td><code>IS_ACTIVE</code></td><td>bool</td><td>Yes</td><td>Soft active flag</td></tr>
+      <tr><td><code>CREATION_TS</code> / <code>LAST_MODIFIED_TS</code></td><td>datetime</td><td>Yes</td><td>Audit timestamps</td></tr>
+      <tr><td><code>OPERATOR_ID</code></td><td>varchar(250)</td><td>No</td><td>User/process id</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">FK: <code>EVENT_TRACKING_FK0 (EVENT_ID) → EVENT(EVENT_ID)</code>. This table is what the <strong>purge</strong> batch (<code>PurgeTrackedEvents</code>) ages out.</p>
+
+  <h2><span class="tbl-title"><span class="tbl-num">6</span> NOTIFICATION_AUDIT — record of each message sent</span></h2>
+  <p>One row per notification sent (or attempted). Written by <code>CreateNotifyAuditBusiness</code> after every email/SMS.</p>
+  <table>
+    <thead><tr><th>Column</th><th>Type</th><th>Null</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>AUDIT_ID</code> <span class="tag-pk">PK</span></td><td>Guid</td><td>No</td><td>Unique audit id</td></tr>
+      <tr><td><code>FROM_ADDRESS</code></td><td>varchar(250)</td><td>No</td><td>Sender address used</td></tr>
+      <tr><td><code>SUBJECT</code></td><td>varchar(250)</td><td>Yes</td><td>Message subject</td></tr>
+      <tr><td><code>MESSAGE</code></td><td>text</td><td>No</td><td>Message body</td></tr>
+      <tr><td><code>CREATED_TS</code></td><td>datetime</td><td>Yes</td><td>Send time — <strong>null indicates a failed send</strong></td></tr>
+    </tbody>
+  </table>
+
+  <h2><span class="tbl-title"><span class="tbl-num">7</span> RECEIVER_AUDIT — recipients of each audited message</span></h2>
+  <p>Child of <code>NOTIFICATION_AUDIT</code>; one row per recipient (To/CC/Bcc).</p>
+  <table>
+    <thead><tr><th>Column</th><th>Type</th><th>Null</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>RECEIVER_ID</code> <span class="tag-pk">PK</span></td><td>Guid</td><td>No</td><td>Unique receiver-audit id</td></tr>
+      <tr><td><code>AUDIT_ID</code> <span class="tag-fk">FK</span></td><td>Guid</td><td>No</td><td>→ <code>NOTIFICATION_AUDIT.AUDIT_ID</code></td></tr>
+      <tr><td><code>TO_ADDRESS</code></td><td>varchar(250)</td><td>No</td><td>Recipient address</td></tr>
+      <tr><td><code>MAIL_TYPE</code></td><td>varchar(10)</td><td>Yes</td><td><code>To</code> / <code>CC</code> / <code>Bcc</code></td></tr>
+      <tr><td><code>CREATED_TS</code></td><td>datetime</td><td>Yes</td><td>Timestamp</td></tr>
+    </tbody>
+  </table>
+  <p class="muted">FK index <code>RECEIVER_AUDIT_IX0 (AUDIT_ID)</code> exists on both platforms; relationship <code>HasMany(ReceiverAudit).WithOne(NotificationAudit)</code>.</p>
+
+  <h2>3. How the Tables Work Together (end to end)</h2>
+  <div class="mermaid">
+flowchart LR
+    CAT[CD_EVENT_CATEGORY] --&gt; EV[EVENT]
+    EV --&gt; ES[EVENT_SUBSCRIPTION]
+    SUB[SUBSCRIBER] --&gt; ES
+    EV --&gt; ET[EVENT_TRACKING]
+    ES --&gt;|email + optional SMS| SEND{{Delivery}}
+    SEND --&gt; NA[NOTIFICATION_AUDIT]
+    NA --&gt; RA[RECEIVER_AUDIT]
+  </div>
+  <ol>
+    <li>An <strong>EVENT</strong> is defined (category from <code>CD_EVENT_CATEGORY</code>, optional SLA schedule).</li>
+    <li><strong>SUBSCRIBERs</strong> sign up via <strong>EVENT_SUBSCRIPTION</strong> (with <code>SEND_SMS</code> flag).</li>
+    <li>When the event occurs, an <strong>EVENT_TRACKING</strong> row is written and notifications go out.</li>
+    <li>Each send is logged in <strong>NOTIFICATION_AUDIT</strong>, with one <strong>RECEIVER_AUDIT</strong> row per recipient.</li>
+  </ol>
+
+  <h2>4. Relationships &amp; Integrity</h2>
+  <table>
+    <thead><tr><th>Parent</th><th>Child</th><th>Key</th><th>Delete rule</th></tr></thead>
+    <tbody>
+      <tr><td><code>EVENT</code></td><td><code>EVENT_TRACKING</code></td><td><code>EVENT_ID</code></td><td>NoAction</td></tr>
+      <tr><td><code>EVENT</code></td><td><code>EVENT_SUBSCRIPTION</code></td><td><code>EVENT_ID</code></td><td>—</td></tr>
+      <tr><td><code>SUBSCRIBER</code></td><td><code>EVENT_SUBSCRIPTION</code></td><td><code>SUBSCRIBER_ID</code></td><td>—</td></tr>
+      <tr><td><code>CD_EVENT_CATEGORY</code></td><td><code>EVENT</code> / <code>EVENT_SUBSCRIPTION</code></td><td><code>CATEGORY_CD</code></td><td>lookup</td></tr>
+      <tr><td><code>NOTIFICATION_AUDIT</code></td><td><code>RECEIVER_AUDIT</code></td><td><code>AUDIT_ID</code></td><td>NoAction</td></tr>
+    </tbody>
+  </table>
+
+  <h2>5. Cross-Cutting Conventions</h2>
+  <ul>
+    <li><strong>GUID PKs</strong> on all current tables (<code>RAW(16)</code> Oracle / <code>uniqueidentifier</code> SQL).</li>
+    <li><strong>Standard audit columns</strong> on config/runtime tables: <code>IS_ACTIVE</code>, <code>CREATION_TS</code>, <code>LAST_MODIFIED_TS</code>, <code>OPERATOR_ID</code>.</li>
+    <li><strong><code>Y/N</code> flags</strong> stored as fixed-length <code>char(1)</code> (<code>IsFixedLength().IsUnicode(false)</code>).</li>
+    <li><strong>Non-Unicode strings</strong> (<code>IsUnicode(false)</code> → <code>varchar</code>, not <code>nvarchar</code>).</li>
+    <li><strong>Dual DB support</strong> — identical logical schema maintained in both Oracle and MSSQL script sets, under schema <code>UA3_NOTIFICATIONS</code>.</li>
+    <li><strong>Schema-qualified</strong> via EF <code>HasDefaultSchema</code> (default <code>NOTIFICATIONS_WRK</code>, override through <code>DefaultConnectionSchema</code>).</li>
+  </ul>
+
+  <div class="ok">
+    <strong>Summary:</strong> The <code>UA3_NOTIFICATIONS</code> database holds event definitions, subscribers, their subscriptions,
+    event occurrences, and a two-level send audit — modeled with GUID keys across both Oracle and Azure SQL.
+  </div>
+</main>
+
+<footer>
+  Notifications Database — Deep Dive &middot; Notification Subsystem &middot; Gainwell Technologies.
+  Diagrams rendered client-side with Mermaid. Schema traced from EF entities and DDL scripts.
+</footer>
+</body>
+</html>

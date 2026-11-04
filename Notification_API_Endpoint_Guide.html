@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Notification API — Endpoint Deep-Dive Guide</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    if (window.mermaid) { mermaid.initialize({ startOnLoad: true, theme: "neutral" }); }
+  });
+</script>
+<style>
+  :root {
+    --fg: #1b1f23; --muted: #57606a; --accent: #0b5cad; --accent2: #0a3d6e;
+    --border: #d0d7de; --bg-soft: #f6f8fa; --code-bg: #f3f4f6;
+    --warn-bg: #fff8e1; --warn-border: #e0b400;
+    --ok-bg: #e9f7ef; --ok-border: #1e8e5a;
+    --danger-bg: #fdecea; --danger-border: #b42318;
+    --c: #1e8e5a; --r: #0b5cad; --u: #b45309; --d: #b42318;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--fg); line-height: 1.55; margin: 0; padding: 0 0 80px; background: #fff; }
+  header { background: linear-gradient(135deg, #0b5cad, #0a3d6e); color: #fff; padding: 32px 40px; }
+  header h1 { margin: 0 0 6px; font-size: 1.75rem; }
+  header p { margin: 0; opacity: 0.9; }
+  main { max-width: 1120px; margin: 0 auto; padding: 0 40px; }
+  h2 { margin-top: 44px; padding-bottom: 6px; border-bottom: 2px solid var(--border); color: var(--accent); }
+  h3 { margin-top: 30px; color: var(--accent2); }
+  h4 { margin-top: 22px; margin-bottom: 4px; color: #243b53; }
+  code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; font-family: Consolas, "Courier New", monospace; font-size: 0.88em; }
+  pre { background: #0d1117; color: #e6edf3; border: 1px solid #30363d; border-radius: 6px; padding: 14px 16px; overflow-x: auto; font-size: 0.84rem; line-height: 1.5; }
+  pre code { background: none; padding: 0; color: inherit; }
+  table { border-collapse: collapse; width: 100%; margin: 14px 0; font-size: 0.88rem; }
+  th, td { border: 1px solid var(--border); padding: 7px 9px; text-align: left; vertical-align: top; }
+  th { background: var(--bg-soft); }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .muted { color: var(--muted); }
+  .note { background: var(--warn-bg); border-left: 4px solid var(--warn-border); padding: 12px 16px; border-radius: 4px; margin: 16px 0; }
+  .ok { background: var(--ok-bg); border-left: 4px solid var(--ok-border); padding: 12px 16px; border-radius: 4px; margin: 16px 0; }
+  .danger { background: var(--danger-bg); border-left: 4px solid var(--danger-border); padding: 12px 16px; border-radius: 4px; margin: 16px 0; }
+  .pill { display: inline-block; background: var(--bg-soft); border: 1px solid var(--border); border-radius: 12px; padding: 1px 10px; font-size: 0.8rem; color: var(--muted); }
+  .mermaid { background: var(--bg-soft); border: 1px solid var(--border); border-radius: 6px; padding: 16px; margin: 16px 0; }
+  footer { max-width: 1120px; margin: 40px auto 0; padding: 20px 40px; border-top: 1px solid var(--border); color: var(--muted); font-size: 0.85rem; }
+  .ep { border: 1px solid var(--border); border-radius: 8px; padding: 2px 16px 10px; margin: 14px 0; background: #fff; }
+  .ep h4 { display:flex; align-items:center; gap:10px; }
+  .verb { font-weight:700; font-size:0.7rem; background: var(--r); color:#fff; padding:1px 7px; border-radius:4px; letter-spacing:0.3px; }
+  .ep ul { margin: 6px 0; }
+  .crud { font-weight: 700; font-size: 0.75rem; }
+  .cc { color: var(--c); } .cr { color: var(--r); } .cu { color: var(--u); } .cd { color: var(--d); }
+  .tc { text-align:center; }
+  .toc { columns: 2; font-size: 0.9rem; }
+  .toc a { text-decoration: none; color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Notification API — Endpoint Deep-Dive Guide</h1>
+  <p>Purpose, flow, tables, operations, auth, payloads &amp; responses &middot; evidence-based</p>
+</header>
+
+<main>
+  <p class="muted">
+    Generated 2026-11-04 &middot; Source: <span class="pill">HPP.BAS.NotificationServicesApi</span>
+    &middot; <span class="pill">Current state — traced from code</span>
+  </p>
+
+  <h2>0. Orientation — What This API Is</h2>
+  <ul>
+    <li><strong>Project:</strong> <code>HPP.BAS.NotificationServicesApi</code> — an ASP.NET Core Web API (net8.0), hosted inside the Service Fabric app <code>HPP.NotificationServices.Main</code>.</li>
+    <li><strong>Single controller:</strong> <code>NotificationServiceController</code> inheriting <code>BaseApiController</code>.</li>
+    <li><strong>All endpoints are <code>[HttpPost]</code></strong> (action-name routing) — even the reads. No GET/PUT/DELETE verbs.</li>
+    <li><strong>Thin controller:</strong> every action calls the injected <code>INotificationService</code>, implemented by <code>NotificationService.cs</code>.</li>
+    <li><strong>Layering:</strong> <code>Controller → NotificationService facade → Business → DataAccess → EF Core (NotificationsDbContext) → UA3_NOTIFICATIONS DB</code>.</li>
+  </ul>
+  <div class="mermaid">
+flowchart LR
+    C[NotificationServiceController&lt;br/&gt;HttpPost actions] --&gt; S[NotificationService facade]
+    S --&gt; B[Business class&lt;br/&gt;e.g. CreateEventBusiness]
+    B --&gt; D[DataAccess class]
+    D --&gt; EF[(NotificationsDbContext&lt;br/&gt;EF Core)]
+    EF --&gt; DB[(UA3_NOTIFICATIONS)]
+    S -. send paths .-&gt; LIB[Library NotificationService&lt;br/&gt;SMTP / SMS]
+    S -. audit .-&gt; AUD[(NOTIFICATION_AUDIT&lt;br/&gt;RECEIVER_AUDIT)]
+  </div>
+
+  <h2>1. Authentication &amp; Authorization — IMPORTANT</h2>
+  <div class="danger">
+    <strong>Finding: there is no authentication, and authorization is effectively a no-op.</strong>
+    As written, every endpoint is publicly callable with no token, API key, or role check.
+  </div>
+  <table>
+    <thead><tr><th>Check</th><th>Finding</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr><td><code>AddAuthentication()</code></td><td><strong>Absent</strong></td><td>Startup.ConfigureServices</td></tr>
+      <tr><td><code>UseAuthentication()</code></td><td><strong>Absent</strong> from pipeline</td><td>Startup.Configure</td></tr>
+      <tr><td><code>UseAuthorization()</code></td><td>Present, but <strong>no authentication scheme behind it</strong></td><td>Startup.cs L75</td></tr>
+      <tr><td><code>[Authorize]</code> attributes</td><td><strong>None</strong> on controller or actions</td><td>NotificationServiceController.cs</td></tr>
+      <tr><td>Auth config in appsettings</td><td><strong>None</strong> (only ModuleName, ApplicationName, InstrumentationKey)</td><td>appsettings.json</td></tr>
+    </tbody>
+  </table>
+  <p>
+    <code>app.UseAuthorization()</code> without any authentication scheme or <code>[Authorize]</code> attribute does nothing to restrict access.
+    Security currently relies on <strong>network/host-level controls</strong> (internal Service Fabric networking), not the API itself.
+  </p>
+  <div class="note">
+    The one gate that exists is <strong>tenant validation</strong> (not security): every write/send calls
+    <code>InitializeAppConfigManager(tenantId)</code>, which <strong>throws <code>ArgumentNullException</code> if <code>tenantId</code> is empty</strong>
+    and loads that tenant's configuration from Redis cache.
+  </div>
+
+  <h2>2. Cross-Cutting Behavior (all endpoints)</h2>
+  <ul>
+    <li><strong>Pipeline:</strong> <code>UseHttpsRedirection → UseRouting → ApiExceptionHandlingMiddleware → UseAuthorization → MapControllers</code>. HTTPS enforced.</li>
+    <li><strong>Error handling:</strong> each service method wraps logic in try/catch and throws <code>FaultException&lt;ServiceException&gt;</code> via <code>ThrowsException(ex, ExceptionConstants.X)</code>; middleware converts to HTTP errors; errors logged via <code>LoggerManager.Logger.LogError</code>.</li>
+    <li><strong>Tenant context:</strong> <code>tenantId</code> sets a correlation id + tenant id on the thread cache and loads tenant config.</li>
+    <li><strong>Docs:</strong> Swagger/SwaggerUI enabled in Development only.</li>
+    <li><strong>Response shape:</strong> reads return <code>Ok(payload)</code> (200 + JSON); <code>DeleteEvent</code>, <code>DeleteSubscriber</code>, <code>SendEmail</code> are <code>void</code> (200/204, no body); errors → fault/problem response.</li>
+  </ul>
+
+  <h2>3. The Endpoints — Grouped by Resource</h2>
+  <p class="muted">Routing is action-based: path is effectively <code>POST {base}/NotificationService/{ActionName}</code> with a JSON body.</p>
+
+  <h3>3A. Events</h3>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> CreateEvent</h4>
+    <ul>
+      <li><strong>Purpose:</strong> Register a new notifiable event definition (name, subsystem, category, message template, optional SLA schedule).</li>
+      <li><strong>Payload:</strong> <code>Event</code> — <code>ID (Guid?)</code>, <code>Name*</code>, <code>Subsystem*</code>, <code>EventCategory</code>, <code>Description</code>, <code>MessageTemplate</code>, <code>HasSLA</code>, <code>RunsOnMonday…Sunday</code>, <code>RunsOnFirstDayOfMonth</code>, <code>RunsOnLastDayOfMonth</code>, <code>RunsOnThisDayOfMonth (int)</code>, <code>RunSchedule</code>, <code>ExpectedRunTimeAs24HHMM</code>, <code>IsActive</code>, <code>OperatorId</code>, <code>TenantId</code>.</li>
+      <li><strong>Operation:</strong> <code>new CreateEventBusiness(request).Execute()</code> → <code>CreateEventDataAccess</code>.</li>
+      <li><strong>Tables:</strong> <code>EVENT</code> <span class="crud cc">(INSERT)</span>.</li>
+      <li><strong>Response:</strong> <code>200 Ok</code> with created <code>Event</code> (ID populated).</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> UpdateEvent</h4>
+    <ul>
+      <li><strong>Purpose:</strong> Modify an existing event definition.</li>
+      <li><strong>Payload:</strong> <code>Event</code> (with <code>ID</code>).</li>
+      <li><strong>Operation:</strong> <code>businessFactory.CreateUpdateEventBusiness(request).Execute()</code> → <code>UpdateEventDataAccess</code>.</li>
+      <li><strong>Tables:</strong> <code>EVENT</code> <span class="crud cu">(UPDATE)</span>. <strong>Response:</strong> <code>200 Ok</code> updated <code>Event</code>.</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> DeleteEvent</h4>
+    <ul>
+      <li><strong>Purpose:</strong> Logically delete (deactivate) an event.</li>
+      <li><strong>Payload (params):</strong> <code>eventId (Guid)</code>, <code>userId</code>, <code>tenantId</code>.</li>
+      <li><strong>Operation:</strong> <code>CreateDeleteEventBusiness(eventId, userId).Execute()</code> → <code>DeleteEventDataAccess</code>.</li>
+      <li><strong>Tables:</strong> <code>EVENT</code> <span class="crud cd">(soft delete — UPDATE IS_ACTIVE)</span>. <strong>Response:</strong> <code>void</code>.</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> GetEvents</h4>
+    <ul>
+      <li><strong>Purpose:</strong> Retrieve events matching simple criteria.</li>
+      <li><strong>Payload:</strong> <code>EventSearchCriteria</code> — <code>EventID</code>, <code>Name</code>, <code>Subsystem</code>, <code>Category</code>, <code>HasSLA</code>, <code>IsActive</code>, <code>LocaleCode</code>, <code>TenantId</code>.</li>
+      <li><strong>Operation:</strong> <code>new GetEventsBusiness(request).Execute()</code> → <code>GetEventsDataAccess</code>.</li>
+      <li><strong>Tables:</strong> <code>EVENT</code> + <code>CD_EVENT_CATEGORY</code> <span class="crud cr">(READ/JOIN)</span>. <strong>Response:</strong> <code>200 Ok</code> <code>List&lt;Event&gt;</code>.</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> SearchEvents</h4>
+    <ul>
+      <li><strong>Payload:</strong> <code>EventQuery</code> (filters/paging). <strong>Operation:</strong> <code>TryRoute&lt;EventQuery&gt;(query)</code>.</li>
+      <li><strong>Tables:</strong> <code>EVENT</code> (+ <code>CD_EVENT_CATEGORY</code>) <span class="crud cr">(READ)</span>. <strong>Response:</strong> <code>200 Ok</code> <code>EventQuery</code>.</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> GetEventNameDetails</h4>
+    <ul>
+      <li><strong>Purpose:</strong> Distinct event names (dropdowns/filters). <strong>Payload:</strong> <code>tenantId</code>.</li>
+      <li><strong>Tables:</strong> <code>EVENT</code> <span class="crud cr">(READ distinct)</span>. <strong>Response:</strong> <code>200 Ok</code> <code>List&lt;EventNameDetails&gt;</code>.</li>
+    </ul>
+  </div>
+
+  <h3>3B. Posted Events / Occurrences</h3>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> PostEvent</h4>
+    <ul>
+      <li><strong>Purpose:</strong> Record that an event actually occurred (occurrence), to be notified/tracked.</li>
+      <li><strong>Payload (params):</strong> <code>eventName</code>, <code>subsystem</code>, <code>messageBody</code>, <code>isArchivedEvent</code>, <code>processRunTime (DateTime?)</code>, <code>previousEventID (Guid?)</code>, <code>operatorId</code>, <code>tenantId</code>.</li>
+      <li><strong>Operation:</strong> <code>CreatePostedEventBusiness(request).Execute()</code> → <code>CreatePostedEventDataAccess</code>.</li>
+      <li><strong>Tables:</strong> <code>EVENT</code> (lookup) + <code>EVENT_TRACKING</code> <span class="crud cc">(INSERT occurrence)</span>. <strong>Response:</strong> <code>200 Ok</code> <code>PostEvent</code> (PostedEventId, EventPostedTime).</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> GetPostedEvents</h4>
+    <ul>
+      <li><strong>Payload:</strong> <code>PostedEventSearchCriteria</code> — <code>PostedEventId</code>, <code>Name</code>, <code>Subsystem</code>, <code>Message</code>, <code>IsNotified</code>, <code>OccurredAfter/Before</code>, <code>TenantId</code>.</li>
+      <li><strong>Tables:</strong> <code>EVENT_TRACKING</code> + <code>EVENT</code> <span class="crud cr">(READ/JOIN)</span>. <strong>Response:</strong> <code>200 Ok</code> <code>List&lt;PostEvent&gt;</code>.</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> SearchPostedEvents</h4>
+    <ul>
+      <li><strong>Payload:</strong> <code>PostedEventQuery</code>. <strong>Operation:</strong> <code>TryRoute&lt;PostedEventQuery&gt;</code>. <strong>Tables:</strong> <code>EVENT_TRACKING</code> (+<code>EVENT</code>) <span class="crud cr">READ</span>. <strong>Response:</strong> <code>200 Ok</code> <code>PostedEventQuery</code>.</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> SendAndPostSubscribedEvent <span class="pill">composite</span></h4>
+    <ul>
+      <li><strong>Purpose:</strong> In one call — find subscribers for an event, <strong>email them</strong>, then <strong>record the occurrence</strong>.</li>
+      <li><strong>Payload:</strong> <code>SendAndPostSubscribedEventCriteria</code> — <code>EventName*</code>, <code>Subsystem*</code>, <code>Subject*</code>, <code>MessageBody*</code>, <code>ToAddress*</code>, <code>FromAddress</code>, <code>OperatorId*</code>, <code>TenantId*</code>.</li>
+      <li><strong>Operation:</strong> <code>GetSubscriptionsByEvent()</code> → if any: <code>SendEmail(...)</code> (SMTP) → <code>PostEvent(...)</code>.</li>
+      <li><strong>Tables:</strong> <code>EVENT_SUBSCRIPTION + SUBSCRIBER + EVENT</code> (read), <code>NOTIFICATION_AUDIT + RECEIVER_AUDIT</code> (audit), <code>EVENT_TRACKING</code> (post). Also SMTP.</li>
+      <li><strong>Response:</strong> <code>200 Ok</code> with <code>PostEvent</code> — <strong><code>null</code> if no subscribers found</strong>.</li>
+    </ul>
+  </div>
+
+  <h3>3C. Subscribers</h3>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> CreateSubscriber</h4>
+    <ul>
+      <li><strong>Purpose:</strong> Add a recipient (email + SMS gateway address). <strong>Payload:</strong> <code>Subscription</code> — <code>SubscriberID</code>, <code>EMail</code>, <code>SmsAddress</code>, <code>OperatorId/UserId</code>, <code>TenantId</code>.</li>
+      <li><strong>Operation:</strong> <code>CreateSubscriberBusiness(request).Execute()</code> → <code>CreateSubscribersDataAccess</code>.</li>
+      <li><strong>Tables:</strong> <code>SUBSCRIBER</code> <span class="crud cc">(INSERT)</span>. <strong>Response:</strong> <code>200 Ok</code> <code>Subscription</code> (SubscriberID populated).</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> UpdateSubscriber</h4>
+    <ul><li><strong>Tables:</strong> <code>SUBSCRIBER</code> <span class="crud cu">(UPDATE)</span>. <strong>Response:</strong> <code>200 Ok</code> <code>Subscription</code>.</li></ul>
+  </div>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> DeleteSubscriber</h4>
+    <ul><li><strong>Payload (params):</strong> <code>subscriberId</code>, <code>userId</code>, <code>tenantId</code>. <strong>Tables:</strong> <code>SUBSCRIBER</code> <span class="crud cd">(soft delete, IS_ACTIVE)</span>. <strong>Response:</strong> <code>void</code>.</li></ul>
+  </div>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> GetSubscriberDetails</h4>
+    <ul>
+      <li><strong>Payload:</strong> <code>SubscriberSearchCriteria</code> — <code>SubscriberID</code>, <code>EmailAddress</code>, <code>SmsAddress</code>, <code>Category</code>, <code>IsActive</code>, <code>TenantId</code>.</li>
+      <li><strong>Tables:</strong> <code>SUBSCRIBER</code> <span class="crud cr">(READ)</span>. <strong>Response:</strong> <code>200 Ok</code> <code>List&lt;Subscription&gt;</code>.</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> SearchSubscriberDetails &middot; GetSubscriberEmailDetails &middot; GetSubscriberSMSDetails</h4>
+    <ul>
+      <li><strong>SearchSubscriberDetails:</strong> payload <code>SubscriberQuery</code> → <code>TryRoute</code>; <code>SUBSCRIBER</code> READ → <code>200 Ok</code> <code>SubscriberQuery</code>.</li>
+      <li><strong>GetSubscriberEmailDetails:</strong> payload <code>tenantId</code>; <code>SUBSCRIBER</code> READ → <code>List&lt;SubscriberEmailDetails&gt;</code>.</li>
+      <li><strong>GetSubscriberSMSDetails:</strong> no param; <code>SUBSCRIBER</code> READ → <code>List&lt;SubscriberSMSDetails&gt;</code>.</li>
+    </ul>
+  </div>
+
+  <h3>3D. Subscriptions (link subscriber ↔ event)</h3>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> CreateSubscription</h4>
+    <ul>
+      <li><strong>Purpose:</strong> Subscribe a subscriber to an event (with <code>SendSMSMessage</code> flag).</li>
+      <li><strong>Payload:</strong> <code>Subscription</code> — <code>EventID</code>, <code>SubscriberID</code>, <code>EMail</code>, <code>SmsAddress</code>, <code>SendSMSMessage (bool)</code>, <code>Subsystem</code>, <code>EventNameContains</code>, <code>Category</code>, <code>TenantId</code>.</li>
+      <li><strong>Operation:</strong> <code>CreateSubscriptionBusiness(request).Execute()</code> → <code>CreateSubscriptionDataAccess</code>.</li>
+      <li><strong>Tables:</strong> <code>EVENT_SUBSCRIPTION</code> <span class="crud cc">(INSERT)</span>. <strong>Response:</strong> <code>200 Ok</code> <code>Subscription</code> (SubscriptionId populated).</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> GetSubscriptions &middot; UpdateSubscription &middot; SearchEventSubscriptions</h4>
+    <ul>
+      <li><strong>GetSubscriptions:</strong> payload <code>SubscriptionSearchCriteria</code> → <code>GetSubscriptionBusiness</code>; <code>EVENT_SUBSCRIPTION + SUBSCRIBER + EVENT</code> <span class="crud cr">(3-way JOIN READ)</span> → <code>List&lt;Subscription&gt;</code>.</li>
+      <li><strong>UpdateSubscription:</strong> <code>EVENT_SUBSCRIPTION</code> <span class="crud cu">(UPDATE)</span> → <code>200 Ok</code> <code>Subscription</code>.</li>
+      <li><strong>SearchEventSubscriptions:</strong> payload <code>SubscriptionQuery</code> → <code>TryRoute</code>; <code>EVENT_SUBSCRIPTION</code> (+joins) READ → <code>SubscriptionQuery</code>.</li>
+    </ul>
+  </div>
+
+  <h3>3E. Notifications (the send operations)</h3>
+
+  <div class="ep">
+    <h4><span class="verb">POST</span> SendEmail</h4>
+    <ul>
+      <li><strong>Purpose:</strong> Send an on-demand email (used standalone and by <code>SendAndPostSubscribedEvent</code>).</li>
+      <li><strong>Payload:</strong> <code>SendMailRequestParams</code> — <code>TenantId</code>, <code>Subject</code>, <code>MailBody</code>, <code>Priority (MailPriority=Normal)</code>, <code>AddressList (List&lt;Address&gt;)</code>, <code>FromAddress (Address?)</code>, <code>AttachmentList (List&lt;Attachments&gt;?)</code>.
+        <ul>
+          <li><code>Address</code>: <code>EmailAddress</code>, <code>DisplayName</code>, <code>MailType (To/CC/Bcc)</code>.</li>
+          <li><code>Attachments</code>: <code>Name</code>, <code>ContentId</code>, <code>Contents (byte[])</code>, <code>AttachmentType (PlainText/HTML/Jpeg/Pdf/…)</code>.</li>
+        </ul>
+      </li>
+      <li><strong>Operation:</strong> allowed-domain filter → <code>InitializeAppConfigManager(tenantId)</code> → <code>Library.Business.NotificationService().SendNotification(...)</code> → SMTP send → write audit.</li>
+      <li><strong>Tables:</strong> <code>NOTIFICATION_AUDIT + RECEIVER_AUDIT</code> <span class="crud cc">(INSERT)</span>. Also SMTP server.</li>
+      <li><strong>Response:</strong> <code>void</code> (200/204). Failure → <code>FaultException&lt;ServiceException&gt;</code> + audit row with null sent-time.</li>
+    </ul>
+  </div>
+
+  <div class="ep">
+    <h4><span class="verb">SOAP ONLY</span> SendSmsText — not exposed via REST</h4>
+    <ul>
+      <li>Present on the WCF <code>INotificationService</code> contract and <code>NotificationService.cs</code>, but <strong>no <code>[HttpPost]</code> action</strong> in <code>NotificationServiceController</code>. Reachable only over SOAP.</li>
+      <li>Sends via the HTTPS SMS gateway and writes <code>NOTIFICATION_AUDIT</code> / <code>RECEIVER_AUDIT</code>.</li>
+    </ul>
+  </div>
+
+  <h2>4. Operation → Table Matrix</h2>
+  <p class="muted"><span class="crud cc">C</span>=Create &nbsp; <span class="crud cr">R</span>=Read &nbsp; <span class="crud cu">U</span>=Update &nbsp; <span class="crud cd">*</span>=soft delete (IS_ACTIVE)</p>
+  <table>
+    <thead><tr><th>Endpoint</th><th class="tc">EVENT</th><th class="tc">EVENT_TRACKING</th><th class="tc">CD_EVENT_CATEGORY</th><th class="tc">SUBSCRIBER</th><th class="tc">EVENT_SUBSCRIPTION</th><th class="tc">AUDIT tables</th><th class="tc">External</th></tr></thead>
+    <tbody>
+      <tr><td>CreateEvent</td><td class="tc cc">C</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>UpdateEvent</td><td class="tc cu">U</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>DeleteEvent</td><td class="tc cd">U*</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>GetEvents / SearchEvents</td><td class="tc cr">R</td><td></td><td class="tc cr">R</td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>GetEventNameDetails</td><td class="tc cr">R</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>PostEvent</td><td class="tc cr">R</td><td class="tc cc">C</td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>GetPostedEvents / Search</td><td class="tc cr">R</td><td class="tc cr">R</td><td></td><td></td><td></td><td></td><td></td></tr>
+      <tr><td>CreateSubscriber</td><td></td><td></td><td></td><td class="tc cc">C</td><td></td><td></td><td></td></tr>
+      <tr><td>UpdateSubscriber</td><td></td><td></td><td></td><td class="tc cu">U</td><td></td><td></td><td></td></tr>
+      <tr><td>DeleteSubscriber</td><td></td><td></td><td></td><td class="tc cd">U*</td><td></td><td></td><td></td></tr>
+      <tr><td>GetSubscriberDetails / Email / SMS</td><td></td><td></td><td></td><td class="tc cr">R</td><td></td><td></td><td></td></tr>
+      <tr><td>CreateSubscription</td><td></td><td></td><td></td><td></td><td class="tc cc">C</td><td></td><td></td></tr>
+      <tr><td>GetSubscriptions</td><td class="tc cr">R</td><td></td><td></td><td class="tc cr">R</td><td class="tc cr">R</td><td></td><td></td></tr>
+      <tr><td>UpdateSubscription</td><td></td><td></td><td></td><td></td><td class="tc cu">U</td><td></td><td></td></tr>
+      <tr><td>SearchEventSubscriptions</td><td class="tc cr">R</td><td></td><td></td><td class="tc cr">R</td><td class="tc cr">R</td><td></td><td></td></tr>
+      <tr><td>SendEmail</td><td></td><td></td><td></td><td></td><td></td><td class="tc cc">C</td><td class="tc">SMTP</td></tr>
+      <tr><td>SendAndPostSubscribedEvent</td><td class="tc cr">R</td><td class="tc cc">C</td><td></td><td class="tc cr">R</td><td class="tc cr">R</td><td class="tc cc">C</td><td class="tc">SMTP</td></tr>
+      <tr><td>SendSmsText <span class="muted">(SOAP only)</span></td><td></td><td></td><td></td><td></td><td></td><td class="tc cc">C</td><td class="tc">SMS gateway</td></tr>
+    </tbody>
+  </table>
+
+  <h2>5. End-to-End Example — SendAndPostSubscribedEvent</h2>
+  <div class="mermaid">
+sequenceDiagram
+    participant Client
+    participant Ctrl as NotificationServiceController
+    participant Svc as NotificationService
+    participant DB as UA3_NOTIFICATIONS
+    participant SMTP as SMTP server
+
+    Client->>Ctrl: POST SendAndPostSubscribedEvent (JSON)
+    Ctrl->>Svc: SendAndPostSubscribedEvent(request)
+    Svc->>Svc: InitializeAppConfigManager(tenantId)
+    Svc->>DB: GetSubscriptionsByEvent (EVENT_SUBSCRIPTION+SUBSCRIBER+EVENT)
+    alt subscribers exist
+        Svc->>Svc: allowed-domain filter
+        Svc->>SMTP: SendNotification (email)
+        Svc->>DB: insert NOTIFICATION_AUDIT + RECEIVER_AUDIT
+        Svc->>DB: PostEvent -> insert EVENT_TRACKING
+        Svc-->>Ctrl: PostEvent result
+    else none
+        Svc-->>Ctrl: null
+    end
+    Ctrl-->>Client: 200 Ok (PostEvent or null)
+  </div>
+
+  <h4>Request body</h4>
+  <pre><code>{
+  "eventName": "PEWrkflwApproved",
+  "subsystem": "ProviderEnrollment",
+  "subject": "Enrollment Approved",
+  "messageBody": "&lt;html&gt;Your enrollment is approved.&lt;/html&gt;",
+  "toAddress": "provider@hpe.com",
+  "fromAddress": "EventNotify@hp.com",
+  "operatorId": "svc-account",
+  "tenantId": "T001"
+}</code></pre>
+  <ul>
+    <li><strong>Success:</strong> <code>200 Ok</code> with a <code>PostEvent</code> object (or <code>null</code> if no subscribers).</li>
+    <li><strong>Failure:</strong> fault/problem response (4xx/5xx) with <code>ServiceException</code> reason; a <code>NOTIFICATION_AUDIT</code> row is still written with a null sent-time to record the failure.</li>
+  </ul>
+
+  <h2>6. Key Takeaways for a Newcomer</h2>
+  <ol>
+    <li><strong>One controller, ~22 POST endpoints</strong>, grouped as Events, Occurrences, Subscribers, Subscriptions, Sends.</li>
+    <li><strong>No API-level auth today</strong> — add authentication/authorization in any modernization. <code>UseAuthorization()</code> alone does nothing here.</li>
+    <li><strong><code>tenantId</code> is mandatory</strong> on write/send operations (throws if missing) and drives per-tenant config loading.</li>
+    <li><strong>Reads</strong> return lists/query objects; <strong>writes</strong> echo the saved DTO; <strong>deletes are soft</strong> (IS_ACTIVE); <strong>sends</strong> return <code>void</code> and always write the two audit tables.</li>
+    <li><strong><code>SendSmsText</code> is not in the REST API</strong> — SOAP only.</li>
+    <li>All failures surface as <code>FaultException&lt;ServiceException&gt;</code> translated by <code>ApiExceptionHandlingMiddleware</code>.</li>
+  </ol>
+
+  <div class="danger">
+    <strong>Security priority:</strong> the API has no authentication/authorization. Before any external exposure or modernization,
+    add an authentication scheme (JWT/OAuth or API key) and <code>[Authorize]</code> policies, and move the tenant check behind it.
+  </div>
+</main>
+
+<footer>
+  Notification API — Endpoint Deep-Dive Guide &middot; Notification Subsystem &middot; Gainwell Technologies.
+  Diagrams rendered client-side with Mermaid. All findings traced from source code.
+</footer>
+</body>
+</html>
