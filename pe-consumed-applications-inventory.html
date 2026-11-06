@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Provider Enrollment — Consumed Applications Inventory (mms-cms-pe-delivered-r30.2609)</title>
+<style>
+  :root {
+    --bg:#fff; --fg:#1f2328; --muted:#57606a; --border:#d0d7de; --head-bg:#f6f8fa;
+    --accent:#0969da; --prod:#8250df; --core:#1a7f37; --ext:#9a6700; --infra:#0550ae; --own:#57606a;
+    --code-bg:#f6f8fa; --warn-bg:#fff8c5; --warn-border:#d4a72c;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; color:var(--fg); background:var(--bg); line-height:1.5; }
+  .wrap { max-width:1160px; margin:0 auto; padding:32px 24px 64px; }
+  header.doc-head { border-bottom:1px solid var(--border); padding-bottom:20px; margin-bottom:28px; }
+  h1 { font-size:25px; margin:0 0 6px; }
+  h2 { font-size:20px; margin:40px 0 12px; padding-bottom:6px; border-bottom:1px solid var(--border); }
+  .subtitle { color:var(--muted); font-size:14px; }
+  .meta { color:var(--muted); font-size:13px; margin-top:10px; }
+  .meta code { background:var(--code-bg); padding:1px 5px; border-radius:4px; }
+  .badge { display:inline-block; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; color:#fff; vertical-align:middle; }
+  .badge.prod{background:var(--prod);} .badge.core{background:var(--core);} .badge.ext{background:var(--ext);} .badge.infra{background:var(--infra);} .badge.own{background:var(--own);}
+  table { border-collapse:collapse; width:100%; margin:8px 0 12px; font-size:13.5px; }
+  th,td { border:1px solid var(--border); padding:8px 10px; text-align:left; vertical-align:top; }
+  th { background:var(--head-bg); font-weight:600; }
+  tbody tr:nth-child(even){ background:#fafbfc; }
+  td.idx { text-align:center; color:var(--muted); width:34px; }
+  code,.mono { font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace; font-size:12px; background:var(--code-bg); padding:1px 5px; border-radius:4px; word-break:break-word; }
+  a { color:var(--accent); text-decoration:none; } a:hover{ text-decoration:underline; }
+  .toc { background:var(--head-bg); border:1px solid var(--border); border-radius:8px; padding:14px 18px; margin-bottom:8px; }
+  .toc ul { margin:6px 0 0; padding-left:20px; } .toc li { margin:2px 0; }
+  .summary-grid { display:flex; gap:12px; flex-wrap:wrap; margin:12px 0 4px; }
+  .stat { flex:1 1 150px; border:1px solid var(--border); border-radius:8px; padding:12px 14px; }
+  .stat .n { font-size:24px; font-weight:700; }
+  .stat.prod .n{color:var(--prod);} .stat.core .n{color:var(--core);} .stat.ext .n{color:var(--ext);} .stat.infra .n{color:var(--infra);}
+  .stat .l { font-size:12.5px; color:var(--muted); }
+  .callout { border-radius:8px; padding:12px 16px; margin:16px 0; font-size:13.5px; border:1px solid var(--warn-border); background:var(--warn-bg); }
+  footer { margin-top:48px; padding-top:16px; border-top:1px solid var(--border); color:var(--muted); font-size:12.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="doc-head">
+    <h1>Consumed Applications Inventory</h1>
+    <div class="subtitle">Component: <code>mms-cms-pe-delivered-r30.2609</code> (Provider Enrollment)</div>
+    <div class="meta">
+      Generated: 2026-11-06 &nbsp;|&nbsp; All applications/services <strong>consumed by</strong> Provider Enrollment, with purpose and code evidence
+      (<code>.svcmap</code> endpoints, WCF <code>Service/Connected References</code>, <code>App.config</code>/<code>Ioc.json</code> endpoints, <code>packages.config</code> / <code>&lt;PackageReference&gt;</code>) — not inferred.
+    </div>
+    <div class="legend meta">
+      <span><span class="badge prod">Product</span> sibling application repos</span>
+      &nbsp;<span><span class="badge core">Core</span> shared platform framework</span>
+      &nbsp;<span><span class="badge ext">External</span> COTS / 3rd-party systems</span>
+      &nbsp;<span><span class="badge infra">Infra</span> platform</span>
+      &nbsp;<span><span class="badge own">Own</span> PE internal services</span>
+    </div>
+  </header>
+
+  <div class="summary-grid">
+    <div class="stat prod"><div class="n">7</div><div class="l">Sibling product applications</div></div>
+    <div class="stat core"><div class="n">1</div><div class="l">Shared Core framework (many packages)</div></div>
+    <div class="stat ext"><div class="n">10</div><div class="l">External / COTS systems</div></div>
+    <div class="stat infra"><div class="n">6</div><div class="l">Infrastructure dependencies</div></div>
+  </div>
+
+  <nav class="toc">
+    <strong>Contents</strong>
+    <ul>
+      <li><a href="#prod">A. Sibling product applications (cross-repo)</a></li>
+      <li><a href="#core">B. Shared Core platform framework (NuGet)</a></li>
+      <li><a href="#ext">C. External / COTS systems</a></li>
+      <li><a href="#infra">D. Infrastructure / platform dependencies</a></li>
+      <li><a href="#own">E. PE's own internal BAS services</a></li>
+      <li><a href="#notes">Notes &amp; evidence basis</a></li>
+    </ul>
+  </nav>
+
+  <!-- A -->
+  <section id="prod">
+    <h2>A. Sibling product applications consumed <span class="badge prod">Product</span></h2>
+    <p>Other Gainwell/HP product applications PE calls via WCF services and/or consumes via NuGet contract packages.</p>
+    <table>
+      <thead>
+        <tr><th class="idx">#</th><th style="width:26%">Application / Service identifier</th><th style="width:26%">Purpose</th><th>Evidence</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="idx">1</td><td><code>HP.HSP.UA3.ProviderManagement.BAS.ProviderSvc.Contracts</code> (Provider Management)</td><td>Core provider domain (ProviderSvc) contracts/models used by Enrollment; provider reporting</td><td>NuGet package (v30.0.0) in EnrollmentSvc <code>packages.config</code>; SSRS <code>HP.HSP.UA3.ProviderManagement.UIReports</code> in <code>SSRSReportURL</code></td></tr>
+        <tr><td class="idx">2</td><td><code>HP.HSP.UA3.ManagedCare.BAS.ManagedCare.Contracts</code> / <code>HPP.ManagedCare.BAS.ManagedCare.Contracts</code> (Managed Care)</td><td>MCO event/contract types (events, periods) consumed by PE</td><td>NuGet package in EnrollmentSvc <code>packages.config</code>; <code>CreateMap</code> in ManagedCareEntityProfile.cs; EnrollmentEventServiceTests</td></tr>
+        <tr><td class="idx">3</td><td><code>HPP.ProviderCredentialing.BAS.ValCrdntls</code> (Provider Credentialing — Validate Credentials)</td><td>Validate-credentials query used during adjudication / screening</td><td>WCF <code>ValCrdntlsQueryService</code> → <code>https://sf.dev.mapshc.com/HPP.ProviderCredentialing.BAS.ValCrdntls/R6.0/?ListenerName=ValCrdntlsQueryServiceListener</code></td></tr>
+        <tr><td class="idx">4</td><td><code>HP.HSP.UA3.NotificationServices</code> / <code>HPP.NotificationServices</code> (Notification Services)</td><td>Post events + send email notifications</td><td>WCF <code>NotificationService</code> (<code>INotificationService.PostEvent/SendEmail</code>) → <code>.../HP.HSP.UA3.NotificationServices/R6.0/NotificationService.svc</code></td></tr>
+        <tr><td class="idx">5</td><td><code>HP.HSP.UA3.DataLists</code> (DataLists / reference data)</td><td>Reference &amp; code-list lookups</td><td>WCF <code>DataListsQueryService</code> → <code>https://mapsdevapp01.dev.mapshc.com/HP.HSP.UA3.DataLists/R6.0/DataListsQueryService.svc</code></td></tr>
+        <tr><td class="idx">6</td><td><code>HPP.Core.BAS.FileMgmtService</code> (Core File Management Service)</td><td>Shared platform EDMS file store (distinct from PE's own FileMgmt)</td><td>WCF <code>FileMgmtService</code> / <code>FileMgmtQueryService</code> → <code>https://sf.dev.mapshc.com/HPP.Core.BAS.FileMgmtService/R6.0/?ListenerName=FileMgmtServiceListener</code></td></tr>
+        <tr><td class="idx">7</td><td><code>CredentialsQueryService</code>, <code>DEAQueryService</code>, <code>CLIAQueryService</code>, <code>NPPESQueryService</code> (Credential &amp; registry lookups)</td><td>DEA, CLIA, NPI/NPPES &amp; credential lookups</td><td>UX.Providers <code>app.config</code> client endpoints <code>https://bas.dev.mapshc.com/{DEA|CLIA|Credentials|NPPES}QueryService</code>; generated <code>Reference.cs</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- B -->
+  <section id="core">
+    <h2>B. Shared Core platform framework (ETS reference architecture) <span class="badge core">Core</span></h2>
+    <p>Consumed as NuGet packages (all <code>Version=30.0.0</code>) — evidence: <code>&lt;PackageReference&gt;</code> / <code>packages.config</code> across BAS, batch, UX.</p>
+    <table>
+      <thead><tr><th style="width:34%">Package family</th><th>Packages (evidence)</th></tr></thead>
+      <tbody>
+        <tr><td><code>HPP.Core.*</code></td><td>BAS.CQRS, API.AddressValidation, API.CAQH, API.ElectronicSignature, API.Workflow, API.CorrespondenceManagement, API.FileManagement, API.CredentialFileManagement, API.DocumentProcessor, API.AppConfig(Core), API.Logger, Common.Cryptography, BatchProcessingFactory.Core</td></tr>
+        <tr><td><code>HP.HSP.UA3.Core.*</code></td><td>BAS.CQRS, API.FileManagement, UX.Business/Common/Data/Interfaces/Presentation/Providers/Services/Web, Core.BAS.TestTools, UX.TestTools</td></tr>
+        <tr><td><code>HPE.HSP.UA3.Core.*</code></td><td>API.CorrespondenceManagement, API.Logger, API.PaymentProcessing</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- C -->
+  <section id="ext">
+    <h2>C. External / COTS systems consumed <span class="badge ext">External</span></h2>
+    <table>
+      <thead><tr><th class="idx">#</th><th style="width:24%">System</th><th style="width:26%">Purpose</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td class="idx">1</td><td>Informatica AddressDoctor</td><td>Address validation</td><td>WCF <code>AddressDoctorService</code> → <code>http://15.169.187.64/AD.Services/WCF/AddressDoctor.svc</code></td></tr>
+        <tr><td class="idx">2</td><td>Verisys</td><td>Credentialing / sanctions screening</td><td><code>Verisys.AuthUrl</code>, <code>Verisys.OrdersUrl</code> (apis.verisys.com)</td></tr>
+        <tr><td class="idx">3</td><td>NPPES (federal NPI registry)</td><td>NPI screening</td><td><code>NPPESQueryServiceDataProvider.cs</code>; <code>EnableEnrollmentEntryScreeningNPPES</code></td></tr>
+        <tr><td class="idx">4</td><td>CAQH (ProView)</td><td>Provider data / identity validation</td><td><code>CaqhProvider</code> in Configs/Ioc.json</td></tr>
+        <tr><td class="idx">5</td><td>DocuSign</td><td>Electronic signature</td><td><code>DocuSignProvider</code> (OAuth) in Configs/Ioc.json; ElectronicSignature batch</td></tr>
+        <tr><td class="idx">6</td><td>InRule (BRE)</td><td>Business rules engine</td><td><code>InRule.ServiceUrl: http://bre.dev.mapshc.com</code></td></tr>
+        <tr><td class="idx">7</td><td>K2</td><td>Workflow engine (legacy)</td><td><code>K2.ProcessServiceUrl: .../K2Services/WCF.svc/Process</code></td></tr>
+        <tr><td class="idx">8</td><td>Appian</td><td>Workflow engine (current)</td><td><code>$(#RootUrl.Appian)/suite/webapi/</code>; PE_Appian_OpenAPI.json</td></tr>
+        <tr><td class="idx">9</td><td>Microsoft SSRS</td><td>Report / letter rendering</td><td><code>ReportServiceUrl: .../ReportExecution2005.asmx</code></td></tr>
+        <tr><td class="idx">10</td><td>HP / Micro Focus Records Manager (RM8)</td><td>Records / content management</td><td><code>RM8Client: http://206.122.21.101/HPRMServiceAPI</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- D -->
+  <section id="infra">
+    <h2>D. Infrastructure / platform dependencies <span class="badge infra">Infra</span></h2>
+    <table>
+      <thead><tr><th style="width:34%">Dependency</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>Oracle Database (<code>Oracle.ManagedDataAccess.Client</code>, EF provider) — schemas <code>UA3_PROVIDER_ENROLL</code>, <code>UA3_TENANT</code></td><td>Connection strings <code>HOST=mapsdevdbo02/03.dev.mapshc.com PORT=1521</code>; EF provider registration</td></tr>
+        <tr><td>Azure SQL Database</td><td><code>Server=tcp:mapsftshrsql01.database.windows.net,1433</code></td></tr>
+        <tr><td>Redis cache (StackExchange.Redis)</td><td><code>CacheConnectionOptions: localhost:6379</code></td></tr>
+        <tr><td>Azure Service Bus / ESB (via CQRS framework)</td><td><code>UseESB: true</code>; publishing through <code>IDistributedEventStorage</code></td></tr>
+        <tr><td>Azure Application Insights (telemetry)</td><td><code>ApplicationInsights.config</code> in BAS Main projects</td></tr>
+        <tr><td>SMTP / email</td><td><code>FromAddress: appshcux@hp.com</code>; notification templates</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- E -->
+  <section id="own">
+    <h2>E. PE's own internal BAS services (same repo) <span class="badge own">Own</span></h2>
+    <p>Called cross-component within the PE solution (hosted under <code>HP.HSP.UA3.ProviderEnrollmentServices</code> / <code>HPP.ProviderEnrollment.BAS.EnrollmentServices</code>).</p>
+    <table>
+      <thead><tr><th style="width:34%">Service</th><th>Evidence</th></tr></thead>
+      <tbody>
+        <tr><td>EnrollmentService / EnrollmentQueryService</td><td>Service References + EnrollmentService/Query_swagger.json</td></tr>
+        <tr><td>EnrollmentBusinessRuleService</td><td>EnrollmentBusinessRule_swagger.json</td></tr>
+        <tr><td>EnrollmentReportService</td><td>EnrollmentReport_swagger.json</td></tr>
+        <tr><td>MCOService / MCOQueryService</td><td>MCO_swagger.json, MCOQuery_swagger.json</td></tr>
+        <tr><td>Portal / PortalQuery, BatchAuditQuery, EnrollmentEvent, EnrollmentWorkflow(Query), ReportTemplate</td><td>OpenAPI specs in components/api-specification</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Notes -->
+  <section id="notes">
+    <h2>Notes &amp; evidence basis</h2>
+    <ul>
+      <li>Applications are identified by their <strong>service/package names</strong> (e.g., <code>HP.HSP.UA3.ProviderManagement.*</code>, <code>HPP.ProviderCredentialing.BAS.ValCrdntls</code>, <code>HP.HSP.UA3.NotificationServices</code>) — the concrete evidence quoted from <code>.svcmap</code>, config, and <code>packages.config</code>. Exact Git repo names beyond these identifiers were not inferred.</li>
+      <li>Hosts shown are <strong>dev</strong> values (<code>*.dev.mapshc.com</code>); production endpoints resolve via <code>$(#RootUrl.*)</code> tokens.</li>
+    </ul>
+    <div class="callout">
+      <strong>Additions vs. earlier inventories:</strong> Provider Management (ProviderSvc.Contracts), Provider Credentialing (ValCrdntls), DataLists service, Core File Management Service, and the DEA/CLIA/Credentials/NPPES query services were surfaced in this detailed sweep.
+    </div>
+  </section>
+
+  <footer>
+    Generated from static code analysis of <code>mms-cms-pe-delivered-r30.2609</code>. Reflects consumed applications/services found in project files, service references, configuration, and client code. Dev endpoints shown; production resolves via config tokens.
+  </footer>
+
+</div>
+</body>
+</html>
