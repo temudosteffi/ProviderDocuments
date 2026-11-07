@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UI Screen Inventory — Notifications Module</title>
+    <style>
+        :root {
+            --gw-blue: #0b5394;
+            --gw-blue-dark: #073763;
+            --gw-accent: #1a73e8;
+            --row-alt: #f4f8fc;
+            --border: #d7dee6;
+            --text: #1f2933;
+            --muted: #52616b;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+            color: var(--text);
+            margin: 0;
+            padding: 0 0 48px;
+            background: #ffffff;
+            line-height: 1.5;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--gw-blue), var(--gw-blue-dark));
+            color: #fff;
+            padding: 28px 40px;
+        }
+
+        header h1 {
+            margin: 0 0 6px;
+            font-size: 1.7rem;
+        }
+
+        header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        main { padding: 32px 40px; }
+
+        .summary {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .card {
+            flex: 1 1 160px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 20px;
+            background: var(--row-alt);
+        }
+
+        .card .num {
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: var(--gw-blue);
+        }
+
+        .card .lbl {
+            font-size: 0.85rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        h2 {
+            color: var(--gw-blue-dark);
+            border-bottom: 2px solid var(--gw-blue);
+            padding-bottom: 6px;
+            margin-top: 40px;
+            font-size: 1.25rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+            font-size: 0.9rem;
+        }
+
+        thead th {
+            background: var(--gw-blue);
+            color: #fff;
+            text-align: left;
+            padding: 10px 12px;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+
+        tbody td {
+            padding: 9px 12px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }
+
+        tbody tr:nth-child(even) { background: var(--row-alt); }
+        tbody tr:hover { background: #e9f1fb; }
+
+        td.num-col { text-align: center; width: 42px; color: var(--muted); }
+
+        code {
+            background: #eef2f6;
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-family: "Consolas", "Courier New", monospace;
+            font-size: 0.85em;
+            color: var(--gw-blue-dark);
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 9px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .op-search  { background: #e3f0ff; color: #0b5394; }
+        .op-view    { background: #e6f4ea; color: #1e7e34; }
+        .op-add     { background: #fff3e0; color: #b35900; }
+        .op-edit    { background: #f3e8ff; color: #6a1b9a; }
+        .op-clone   { background: #fde7ef; color: #a01648; }
+        .op-host    { background: #eceff1; color: #37474f; }
+
+        footer {
+            padding: 20px 40px;
+            color: var(--muted);
+            font-size: 0.8rem;
+            border-top: 1px solid var(--border);
+            margin-top: 40px;
+        }
+
+        .note {
+            background: #fffbe6;
+            border-left: 4px solid #f0c000;
+            padding: 12px 16px;
+            margin: 16px 0;
+            font-size: 0.88rem;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>UI Screen Inventory &mdash; Notifications Module</h1>
+        <p>Evidence-based inventory from <code>HP.HSP.UA3.Notifications.UX.Presentation</code> &bull; Controller: <code>NotificationsController.cs</code></p>
+    </header>
+
+    <main>
+        <section class="summary">
+            <div class="card">
+                <div class="num">25</div>
+                <div class="lbl">Total Screens</div>
+            </div>
+            <div class="card">
+                <div class="num">14</div>
+                <div class="lbl">Full-Page (MVC Actions)</div>
+            </div>
+            <div class="card">
+                <div class="num">11</div>
+                <div class="lbl">Partial / Modal</div>
+            </div>
+            <div class="card">
+                <div class="num">4</div>
+                <div class="lbl">Sub-Modules</div>
+            </div>
+        </section>
+
+        <h2>Full-Page Screens (MVC <code>[HttpGet]</code> Actions)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Screen (View)</th>
+                    <th>Sub-Module</th>
+                    <th>Operation</th>
+                    <th>Purpose</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="num-col">1</td>
+                    <td><code>NotificationTracking.cshtml</code></td>
+                    <td>Notification Tracking</td>
+                    <td><span class="tag op-search">Search</span></td>
+                    <td>Search / track event notifications by name, subsystem, message, date.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">2</td>
+                    <td><code>ViewNotificationTracking.cshtml</code></td>
+                    <td>Notification Tracking</td>
+                    <td><span class="tag op-view">View</span></td>
+                    <td>View a single notification / event tracking record (by <code>eventID</code>).</td>
+                </tr>
+                <tr>
+                    <td class="num-col">3</td>
+                    <td><code>EventNotificationSearch.cshtml</code></td>
+                    <td>Event Service / Config</td>
+                    <td><span class="tag op-search">Search</span></td>
+                    <td>Search event services / configurations; launch Create New.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">4</td>
+                    <td><code>ViewEventService.cshtml</code></td>
+                    <td>Event Service / Config</td>
+                    <td><span class="tag op-view">View</span></td>
+                    <td>View event service detail (by <code>eventId</code>).</td>
+                </tr>
+                <tr>
+                    <td class="num-col">5</td>
+                    <td><code>AddEventConfiguration.cshtml</code></td>
+                    <td>Event Config</td>
+                    <td><span class="tag op-add">Add</span></td>
+                    <td>Create a new event configuration.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">6</td>
+                    <td><code>EventConfiguration.cshtml</code></td>
+                    <td>Event Config</td>
+                    <td><span class="tag op-host">View / Edit / Clone (host)</span></td>
+                    <td>Container screen hosting view, edit and clone partials for an event config (by <code>eventId</code>).</td>
+                </tr>
+                <tr>
+                    <td class="num-col">7</td>
+                    <td><code>SubscriberSearch.cshtml</code></td>
+                    <td>Subscriber</td>
+                    <td><span class="tag op-search">Search</span></td>
+                    <td>Search event subscribers.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">8</td>
+                    <td><code>AddEventConfigurationSubscriber.cshtml</code></td>
+                    <td>Subscriber</td>
+                    <td><span class="tag op-add">Add</span></td>
+                    <td>Create a new event subscriber.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">9</td>
+                    <td><code>EventConfigurationSubscriber.cshtml</code></td>
+                    <td>Subscriber</td>
+                    <td><span class="tag op-host">View / Edit / Clone (host)</span></td>
+                    <td>Container hosting subscriber view / edit / clone partials (by <code>subscriberID</code>).</td>
+                </tr>
+                <tr>
+                    <td class="num-col">10</td>
+                    <td><code>ViewSubscriberDetails.cshtml</code></td>
+                    <td>Subscriber</td>
+                    <td><span class="tag op-view">View</span></td>
+                    <td>View subscriber details (by <code>subscriberID</code>).</td>
+                </tr>
+                <tr>
+                    <td class="num-col">11</td>
+                    <td><code>SubscriptionDetails.cshtml</code></td>
+                    <td>Subscription</td>
+                    <td><span class="tag op-search">Search</span></td>
+                    <td>Search subscription details.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">12</td>
+                    <td><code>AddSubscription.cshtml</code></td>
+                    <td>Subscription</td>
+                    <td><span class="tag op-add">Add</span></td>
+                    <td>Create a new subscription.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">13</td>
+                    <td><code>EventSubscription.cshtml</code></td>
+                    <td>Subscription</td>
+                    <td><span class="tag op-host">View / Edit / Clone / Add (host)</span></td>
+                    <td>Container hosting subscription view / edit / clone / add partials (by <code>subscriptionID</code>).</td>
+                </tr>
+                <tr>
+                    <td class="num-col">14</td>
+                    <td><code>ViewSubscriptionDetails.cshtml</code></td>
+                    <td>Subscription</td>
+                    <td><span class="tag op-view">View</span></td>
+                    <td>View subscription detail (by <code>subscriptionID</code>).</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>Partial / Modal Screens (Rendered Inside Host Views)</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Partial View</th>
+                    <th>Sub-Module</th>
+                    <th>Operation</th>
+                    <th>Purpose</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="num-col">15</td>
+                    <td><code>ViewEventConfiguration.cshtml</code></td>
+                    <td>Event Config</td>
+                    <td><span class="tag op-view">View (modal)</span></td>
+                    <td>Read-only modal popup of event configuration details (<code>Layout = null</code>).</td>
+                </tr>
+                <tr>
+                    <td class="num-col">16</td>
+                    <td><code>ViewEventConfigurationPartial.cshtml</code></td>
+                    <td>Event Config</td>
+                    <td><span class="tag op-view">View</span></td>
+                    <td>Read-only event config section in host screen.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">17</td>
+                    <td><code>EditEventConfigurationPartial.cshtml</code></td>
+                    <td>Event Config</td>
+                    <td><span class="tag op-edit">Edit</span></td>
+                    <td>Edit event config fields.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">18</td>
+                    <td><code>CreateFromExistingEventPartial.cshtml</code></td>
+                    <td>Event Config</td>
+                    <td><span class="tag op-clone">Create-from-existing</span></td>
+                    <td>Clone a new event config from an existing one.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">19</td>
+                    <td><code>ViewEventSubscriberPartial.cshtml</code></td>
+                    <td>Subscriber</td>
+                    <td><span class="tag op-view">View</span></td>
+                    <td>Read-only subscriber section.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">20</td>
+                    <td><code>EditEventSubscriberPartial.cshtml</code></td>
+                    <td>Subscriber</td>
+                    <td><span class="tag op-edit">Edit</span></td>
+                    <td>Edit subscriber fields.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">21</td>
+                    <td><code>CreateFromExistingSubscriberPartial.cshtml</code></td>
+                    <td>Subscriber</td>
+                    <td><span class="tag op-clone">Create-from-existing</span></td>
+                    <td>Clone a new subscriber from existing.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">22</td>
+                    <td><code>ViewEventSubscriptionPartial.cshtml</code></td>
+                    <td>Subscription</td>
+                    <td><span class="tag op-view">View</span></td>
+                    <td>Read-only subscription section.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">23</td>
+                    <td><code>EditEventSubscriptionPartial.cshtml</code></td>
+                    <td>Subscription</td>
+                    <td><span class="tag op-edit">Edit</span></td>
+                    <td>Edit subscription fields.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">24</td>
+                    <td><code>CreateFromExistingSubscriptionPartial.cshtml</code></td>
+                    <td>Subscription</td>
+                    <td><span class="tag op-clone">Create-from-existing</span></td>
+                    <td>Clone a new subscription from existing.</td>
+                </tr>
+                <tr>
+                    <td class="num-col">25</td>
+                    <td><code>AddNewSubscriptionPartial.cshtml</code></td>
+                    <td>Subscription</td>
+                    <td><span class="tag op-add">Add</span></td>
+                    <td>Inline add-new subscription form inside host.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="note">
+            <strong>Scope note:</strong> All 25 screens belong to the single <code>Notifications</code> controller / module.
+            The shared <code>ValidationSummary</code> and <code>ModelMetaData</code> partials are framework-common
+            (not Notifications screens) and are therefore excluded from this inventory.
+        </div>
+    </main>
+
+    <footer>
+        Generated from source evidence under
+        <code>components/ux/HP.HSP.UA3.Notifications.UX.Presentation/Views/Notifications</code>
+        &bull; Gainwell Technologies.
+    </footer>
+</body>
+</html>
