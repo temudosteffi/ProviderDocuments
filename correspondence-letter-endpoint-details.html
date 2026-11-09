@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Correspondence Letter — Endpoint URL, Payload, Response, Implementation &amp; DB</title>
+<style>
+  :root{
+    --fg:#1b1f23; --muted:#57606a; --accent:#0b5cad; --accent-dark:#073763;
+    --border:#d0d7de; --bg-soft:#f6f8fa; --code-bg:#eef2f6; --badge:#b35900;
+    --yes:#0b7a3b; --no:#b3261e; --warn:#b35900; --warn-bg:#fff4e5;
+  }
+  *{box-sizing:border-box;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--fg);line-height:1.55;margin:0;padding:0 1rem 4rem;background:#fff;}
+  .wrap{max-width:1060px;margin:0 auto;}
+  header.page{background:linear-gradient(135deg,var(--accent),var(--accent-dark));color:#fff;padding:2rem 1.5rem;border-radius:0 0 8px 8px;margin-bottom:1.5rem;}
+  header.page h1{margin:0 0 .3rem;font-size:1.7rem;}
+  header.page .sub{opacity:.9;font-size:.95rem;}
+  h2{margin-top:2.4rem;padding-bottom:.3rem;border-bottom:1px solid var(--border);font-size:1.3rem;color:var(--accent-dark);}
+  h3{margin-top:1.4rem;font-size:1.05rem;}
+  code{background:var(--code-bg);padding:.12em .4em;border-radius:4px;font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;font-size:.85em;color:var(--accent-dark);}
+  pre{background:var(--bg-soft);border:1px solid var(--border);border-radius:6px;padding:.9rem 1rem;overflow-x:auto;font-size:.82rem;line-height:1.5;}
+  pre code{background:none;padding:0;color:inherit;}
+  table{border-collapse:collapse;width:100%;margin:1rem 0;font-size:.86rem;}
+  th,td{border:1px solid var(--border);padding:.5rem .65rem;text-align:left;vertical-align:top;}
+  th{background:var(--bg-soft);}
+  tbody tr:nth-child(even){background:var(--bg-soft);}
+  .callout{background:var(--bg-soft);border-left:4px solid var(--accent);padding:.8rem 1rem;border-radius:0 6px 6px 0;margin:1rem 0;}
+  .warnbox{background:var(--warn-bg);border:1px solid #f0c48a;border-left:4px solid var(--warn);padding:.9rem 1.1rem;border-radius:0 6px 6px 0;margin:1rem 0;}
+  .path{color:var(--muted);font-size:.8rem;}
+  .req{color:var(--yes);font-weight:600;}
+  .opt{color:var(--muted);}
+  ul{padding-left:1.25rem;}
+  li{margin:.28rem 0;}
+  ol li{margin:.4rem 0;}
+  .badge{display:inline-block;background:var(--badge);color:#fff;font-size:.68rem;font-weight:600;padding:.1rem .45rem;border-radius:10px;vertical-align:middle;}
+  footer.page{margin-top:3rem;padding-top:1rem;border-top:1px solid var(--border);color:var(--muted);font-size:.8rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="page">
+  <h1>Correspondence Letter — Endpoint, Payload, Response, Implementation &amp; DB</h1>
+  <div class="sub">Repository <code>mms-cms-note-delivered-r30.2609</code> &middot; evidence-based from source &middot; Generated 2026-11-09</div>
+</header>
+
+<div class="callout">
+  All items below are traced to source. Where the repository does not contain a value, it is explicitly flagged rather than assumed.
+</div>
+
+<section>
+  <h2>1. Endpoint URL(s)</h2>
+  <p>
+    The correspondence letter has <strong>no dedicated URL of its own</strong> — it is triggered through the generic
+    <strong>event-distribution endpoint</strong> (<code>NotificationEventService</code> / <code>IEventDistribution</code>),
+    hosted three ways in the repo:
+  </p>
+  <table>
+    <thead><tr><th>Host</th><th>Project</th><th>URL / route (evidence)</th><th>Transport</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>CoreWCF SOAP</strong></td>
+        <td><code>HPP.BAS.NotificationServices</code></td>
+        <td>relative route <strong><code>/NotificationEventService</code></strong>, <code>BasicHttpsBinding</code> (Startup.cs line 72); dev host <code>http://localhost:27318</code> &rarr; <code>https://localhost:27318/NotificationEventService</code></td>
+        <td>SOAP/HTTPS</td>
+      </tr>
+      <tr>
+        <td><strong>REST/HTTP API</strong></td>
+        <td><code>HPP.BAS.NotificationServicesApi</code></td>
+        <td><code>POST {base}/ProcessEvent</code> on <code>NotificationEventServiceController</code>; dev hosts <code>https://localhost:7155</code>, <code>http://localhost:5155</code>, IIS Express <code>http://localhost:34435</code></td>
+        <td>REST/HTTP (net8)</td>
+      </tr>
+      <tr>
+        <td><strong>Legacy WCF <code>.svc</code></strong></td>
+        <td><code>HP.NotificationServices</code></td>
+        <td><code>NotificationEventService.svc</code>; prod pattern (by analogy to sibling client config) <code>http://bas.dev.mapshc.com:8010/HP.HSP.UA3.NotificationServices/R6.0/NotificationEventService.svc</code></td>
+        <td>SOAP</td>
+      </tr>
+      <tr>
+        <td><strong>Service Fabric</strong></td>
+        <td><code>HPP.NotificationServices.Main</code></td>
+        <td>endpoint <code>NotificationEventServiceEndpoint</code>, <code>BasicHttpsBinding</code> (ServiceManifest.xml line 34)</td>
+        <td>SOAP/HTTPS</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="warnbox">
+    <strong>Evidence caveat (REST host):</strong> the controllers carry only <code>[HttpPost]</code>; <strong>no
+    <code>[Route]</code>/<code>[RoutePrefix]</code> is declared in this repo</strong>, and <code>Startup</code> uses only
+    <code>MapControllers()</code>. The base route for <code>ProcessEvent</code> is defined in the external base class
+    <code>EventDistributionBaseApiController</code> (<code>HPP.Core.BAS.CQRS.Base.Api</code>), which is <strong>not in this
+    repository</strong> — so the exact REST path cannot be confirmed from code. The CoreWCF route
+    <code>/NotificationEventService</code> <strong>is</strong> explicit in repo.
+  </div>
+</section>
+
+<section>
+  <h2>2. What it does (simple terms)</h2>
+  <p>
+    A business module (e.g. Program Integrity) sends an event saying "a correspondence letter was generated — please
+    process it." This endpoint receives that event, uses the module's data to <strong>render a formatted letter from an
+    SSRS template</strong>, puts that letter into an <strong>email body</strong>, and <strong>sends the email</strong> to the
+    recipients, writing an <strong>audit record</strong> of the send.
+  </p>
+</section>
+
+<section>
+  <h2>3. Input / payload</h2>
+  <p>
+    The endpoint accepts an <strong><code>EventMessage</code></strong> carrying a serialized
+    <strong><code>CorrespondenceNotificationGenerated</code></strong> event (namespace
+    <code>HPP.Core.BAS.CQRS.Base.Correspondence.Events</code>). It is mapped internally to
+    <code>AddCorrespondenceNotificationCommand</code>. Key payload fields:
+  </p>
+  <table>
+    <thead><tr><th>Field</th><th>Meaning</th><th>Required</th></tr></thead>
+    <tbody>
+      <tr><td><code>XmlData</code></td><td>Report data (e.g. <code>CaseAssignmentEmailMetaData</code>) fed to SSRS</td><td class="req">Yes</td></tr>
+      <tr><td><code>ReportName</code></td><td>SSRS template name (e.g. <code>PICTCaseAssignmentEmail</code>)</td><td class="req">Yes</td></tr>
+      <tr><td><code>ModuleName</code></td><td>Used in SSRS template path (e.g. <code>Program Integrity CT</code>)</td><td class="req">Yes</td></tr>
+      <tr><td><code>LetterContentType</code></td><td>Output format: PDF/MHTML/HTML4/HTML32/XML/CSV/Image/Excel/Word/Excelx</td><td class="req">Yes</td></tr>
+      <tr><td><code>SendEmail</code></td><td>Whether to email the rendered doc</td><td class="opt">—</td></tr>
+      <tr><td><code>FromAddress</code>, <code>AddressList</code></td><td>Sender + To/CC/Bcc recipients</td><td class="opt">—</td></tr>
+      <tr><td><code>MailSubject</code>, <code>MailPriority</code></td><td>Email subject + Normal/High/Low</td><td class="opt">—</td></tr>
+      <tr><td><code>Attachments</code></td><td>Files from the payload (PDF + Jpeg logo)</td><td class="opt">Optional</td></tr>
+      <tr><td><code>Locale</code>, <code>StoreInFileShare</code>, <code>FilePath</code>, <code>FileExtension</code>, <code>NotificationId</code>, <code>Description</code></td><td>Metadata</td><td class="opt">—</td></tr>
+      <tr><td>Envelope: <code>TenantID</code>, <code>ApplicationName</code>, <code>CorrelationId</code>, <code>UserID</code>, <code>UserIp</code></td><td>Routing / context</td><td class="opt">—</td></tr>
+    </tbody>
+  </table>
+  <p>Wire format is SOAP/HTTP XML with base64-encoded attachments and escaped <code>XmlData</code>.</p>
+</section>
+
+<section>
+  <h2>4. Response</h2>
+  <ul>
+    <li>The handler <code>Handle(...)</code> returns a <strong>new empty <code>Event</code></strong> object — there is
+      <strong>no document/URL/status returned</strong> to the caller. It is fire-and-forget (render &rarr; email &rarr; audit).</li>
+    <li><strong>On validation failure</strong> (missing ReportName/ModuleName/XmlData/LetterContentType, invalid content type,
+      invalid email): a <code>FaultException&lt;BusinessValidationException&gt;</code> is thrown.</li>
+    <li><strong>On SMTP failure:</strong> the audit is still written (with null sent-time), and the exception is rethrown.</li>
+    <li>The REST host wraps errors via <code>ApiExceptionHandlingMiddleware</code>.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>5. Implementation (what the handler holds)</h2>
+  <p class="path">CorrespondenceNotificationCommandHandler.Handle (HPP.NotificationServices.Business/CommandHandlers)</p>
+  <ol>
+    <li><strong>Validate</strong> via <code>CorrespondenceNotificationValidator</code>.</li>
+    <li><strong>GenerateReport</strong> — builds <code>LetterRequest(TenantId, ApplicationName, "#SSRS.Root/{ModuleName}/Notification Letters/{ReportName}", ModuleName, XmlDocument, {XmlData, ResourcePath})</code>
+      with SSRS credentials + <code>OutputFormat</code>, then calls <code>CorrespondenceProvider.GenerateCorrespondence(request)</code>
+      &rarr; external <strong><code>SSRSProvider</code></strong> (package <code>HPP.Core.API.CorrespondenceManagement</code>)
+      &rarr; <strong>SSRS server</strong> at <code>#RootUrl.RPT/ReportServer/ReportExecution2005.asmx</code> over WCF
+      (<code>SecuredHttpBinding_Standard</code>). Returns <code>LetterResponse.GeneratedDocument</code> (byte[]).</li>
+    <li><strong>Build body</strong> — <code>UTF8.GetString(GeneratedDocument)</code>; swap header-logo <code>ContentId</code> if a Jpeg attachment exists.</li>
+    <li><strong>SendNotification</strong> — builds <code>System.Net.Mail.MailMessage</code> (From/To/CC/Bcc, <code>IsBodyHtml</code> if body contains "html", attaches <code>command.Attachments</code>), <code>SmtpClient.Send(message)</code> to the tenant-scoped SMTP server.</li>
+    <li><strong>Audit</strong> — <code>CreateNotifyAuditBusiness(...).Execute()</code>.</li>
+  </ol>
+  <div class="callout">
+    Config is tenant-scoped (loaded via <code>ApplicationConfigurationManager.LoadApplicationConfiguration(tenantId, RedisCacheManager)</code>
+    &rarr; <strong>Redis</strong>, backed by <strong>Azure SQL <code>UA3_TENANT</code></strong>). DI (Autofac) registers the handler,
+    validator, <code>SSRSProvider</code>, and <code>BusinessFactory</code>.
+  </div>
+</section>
+
+<section>
+  <h2>6. Database interaction (in detail)</h2>
+  <p>
+    The only DB write on this path is the <strong>audit</strong>, done by <code>CreateNotifyAuditDataAccess</code> into the
+    <strong>Notifications DB</strong> (Oracle or SQL Server, selected by the tenant-scoped <code>DefaultConnectionString</code>):
+  </p>
+  <h3>6.1 <code>NOTIFICATION_AUDIT</code> — one INSERT (raw parameterized SQL)</h3>
+  <pre><code>INSERT INTO NOTIFICATION_AUDIT (AUDIT_ID, FROM_ADDRESS, SUBJECT, MESSAGE, CREATED_TS)
+VALUES (@audit_Id, @from_address, @subject, @message, @created_ts)</code></pre>
+  <ul>
+    <li>Bind prefix swapped per provider (<code>:</code> Oracle / <code>@</code> SQL Server) via
+      <code>DbProviderFactories.GetFactory(session.ProviderInvariantName)</code>.</li>
+    <li><code>AUDIT_ID</code> is a new GUID stored as bytes.</li>
+  </ul>
+  <h3>6.2 <code>RECEIVER_AUDIT</code> — one INSERT per recipient (Entity Framework)</h3>
+  <ul>
+    <li><code>dbcontext.RECEIVER_AUDIT.Add(...)</code> + <code>SaveChanges()</code> for each address.</li>
+    <li>Columns: <code>ReceiverId</code> (new GUID), <code>AuditId</code> (FK), <code>CreationDate</code> (UtcNow), <code>ToAddress</code>, <code>MailType</code>.</li>
+  </ul>
+  <div class="callout">
+    There are <strong>no reads/writes</strong> to <code>EVENT</code> / <code>EVENT_SUBSCRIPTION</code> / <code>SUBSCRIBER</code>
+    tables on the correspondence path — those belong to the event/subscription flows, not correspondence. The letter template
+    and rendering are <strong>not</strong> in the DB (they live on the SSRS server).
+  </div>
+</section>
+
+<section>
+  <h2>7. Summary</h2>
+  <table>
+    <tbody>
+      <tr><th>Dedicated correspondence URL?</th><td>No — uses the generic event endpoint <code>NotificationEventService</code> / <code>ProcessEvent</code></td></tr>
+      <tr><th>Explicit route in repo</th><td>CoreWCF <code>/NotificationEventService</code> (<code>BasicHttpsBinding</code>)</td></tr>
+      <tr><th>REST route</th><td><code>POST {base}/ProcessEvent</code> — base route defined in external <code>HPP.Core.BAS.CQRS</code>, not in repo</td></tr>
+      <tr><th>Input</th><td><code>EventMessage</code> → <code>CorrespondenceNotificationGenerated</code> → <code>AddCorrespondenceNotificationCommand</code></td></tr>
+      <tr><th>Response</th><td>Empty <code>Event</code> (fire-and-forget); fault on validation/SMTP error</td></tr>
+      <tr><th>Generation</th><td>External SSRS via <code>HPP.Core.API.CorrespondenceManagement.SSRSProvider</code></td></tr>
+      <tr><th>Send</th><td><code>SmtpClient.Send</code> (rendered doc as body; payload files as attachments)</td></tr>
+      <tr><th>DB writes</th><td><code>NOTIFICATION_AUDIT</code> (raw SQL) + <code>RECEIVER_AUDIT</code> (EF, per recipient)</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<footer class="page">
+  Source-verified across <code>HPP.BAS.NotificationServices/Startup.cs</code>, <code>HPP.BAS.NotificationServicesApi</code>
+  (<code>Startup.cs</code>, <code>launchSettings.json</code>, <code>NotificationEventServiceController.cs</code>),
+  <code>ServiceManifest.xml</code>, <code>CorrespondenceNotificationCommandHandler.cs</code>,
+  <code>CorrespondenceNotificationValidator.cs</code>, <code>CreateNotifyAuditDataAccess.cs</code>, and entity mappings
+  (<code>NOTIFICATION_AUDIT</code>, <code>RECEIVER_AUDIT</code>). Line numbers and endpoints reflect the code at generation time.
+</footer>
+
+</div>
+</body>
+</html>
