@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Consumers of mms-cms-note-delivered-r30.2609</title>
+<style>
+  :root {
+    --bg: #f6f8fa;
+    --card: #ffffff;
+    --ink: #1f2328;
+    --muted: #57606a;
+    --accent: #0969da;
+    --border: #d0d7de;
+    --green-bg: #dafbe1;
+    --green-ink: #1a7f37;
+    --amber-bg: #fff8c5;
+    --amber-ink: #9a6700;
+    --red-bg: #ffebe9;
+    --red-ink: #cf222e;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.55;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 32px 20px 64px; }
+  header.page {
+    background: linear-gradient(135deg, #0969da, #0a3069);
+    color: #fff;
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 28px;
+  }
+  header.page h1 { margin: 0 0 6px; font-size: 1.6rem; }
+  header.page p { margin: 2px 0; opacity: 0.92; font-size: 0.95rem; }
+  .meta { font-size: 0.82rem; opacity: 0.8; margin-top: 10px; }
+  section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 26px;
+    margin-bottom: 22px;
+  }
+  h2 { font-size: 1.2rem; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+  h3 { font-size: 1rem; margin: 18px 0 8px; color: var(--muted); }
+  p { margin: 8px 0; }
+  code {
+    background: #eff1f3;
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 0.85em;
+  }
+  .endpoint {
+    display: block;
+    background: #0d1117;
+    color: #7ee787;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-family: "SFMono-Regular", Consolas, monospace;
+    font-size: 0.82rem;
+    overflow-x: auto;
+    margin: 10px 0;
+  }
+  table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.9rem; }
+  th, td { text-align: left; padding: 10px 12px; border: 1px solid var(--border); vertical-align: top; }
+  th { background: #f0f3f6; font-weight: 600; }
+  tbody tr:nth-child(even) { background: #fafbfc; }
+  .pill {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .pill.active { background: var(--green-bg); color: var(--green-ink); }
+  .pill.archive { background: var(--amber-bg); color: var(--amber-ink); }
+  .pill.none { background: var(--red-bg); color: var(--red-ink); }
+  .evidence { font-size: 0.8rem; color: var(--muted); font-family: "SFMono-Regular", Consolas, monospace; }
+  ul { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 0.82rem; margin-top: 8px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 20px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="page">
+    <h1>Consumers of <code style="background:rgba(255,255,255,.18);color:#fff">mms-cms-note-delivered-r30.2609</code></h1>
+    <p>Evidence-based analysis of which repositories consume the Notification subsystem.</p>
+    <p class="meta">Generated 2026-11-11 &middot; Based on direct code inspection (WCF service references, endpoint URLs, provider/consumer classes).</p>
+  </header>
+
+  <section>
+    <h2>Summary</h2>
+    <p>
+      All consumers bind to a single exposed service &mdash; the
+      <code>NotificationService</code> WCF/SOAP endpoint (contract <code>INotificationService</code>).
+      The dominant operation invoked is <code>PostEvent</code> (posting an event occurrence);
+      the Core UX provider additionally uses <code>CreateEvent</code>, <code>UpdateEvent</code>,
+      <code>GetEvents</code>, <code>GetPostedEvents</code>, and subscription operations.
+    </p>
+    <span class="endpoint">http(s)://bas.dev.mapshc.com[:8010]/HP.HSP.UA3.NotificationServices/R6.0/NotificationService.svc</span>
+    <div class="legend">
+      <span><span class="pill active">Active</span> code under <code>components/</code></span>
+      <span><span class="pill archive">Archived</span> code under <code>components-archive/</code></span>
+      <span><span class="pill none">No evidence</span> not a consumer</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Repositories consuming the Notification service</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Repo</th>
+          <th>Status</th>
+          <th>What it consumes</th>
+          <th>Evidence</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>mms-cms-core-delivered-r30.2609</strong></td>
+          <td><span class="pill active">Active</span></td>
+          <td><code>NotificationService</code> (<code>INotificationService</code>) &mdash; EAI EventRouter forwards/routes events; Core UX Providers calls <code>CreateEvent</code>, <code>PostEvent</code>, <code>GetPostedEvents</code>, <code>Subscribe</code>, etc.</td>
+          <td class="evidence">components/eai/.../HPP.EAI.EventRouter.Business/Service References/NotificationService/Reference.svcmap + Providers/NotificationProvider.cs; components/ux/HP.HSP.UA3.Core.UX.Providers/Service References/NotificationService/</td>
+        </tr>
+        <tr>
+          <td><strong>mms-cms-pe-delivered-r30.2609</strong><br><span class="evidence">Provider Enrollment</span></td>
+          <td><span class="pill active">Active</span></td>
+          <td><code>NotificationService</code> &mdash; EnrollmentSvc BAS lists it as "Dependent Service"; batches <code>EnrollRetryNotification</code>, <code>EnrollmentNotificationExtract</code>, <code>GenerateNewBulkEnrollments</code> call it (<code>PostEvent</code>)</td>
+          <td class="evidence">components/bas/EnrollmentSvc/.../IEnrollmentService.cs (Dependent Service(s): NotificationService); components/batch/EnrollRetryNotification/.../NotificationService/; archived ProcessCredentialingResults/.../Reference.svcmap</td>
+        </tr>
+        <tr>
+          <td><strong>mms-cms-fxfer-delivered-r30.2609</strong><br><span class="evidence">File Transfer</span></td>
+          <td><span class="pill active">Active</span></td>
+          <td><code>NotificationService</code> (<code>INotificationService</code> &rarr; <code>NotificationServiceClient</code>, <code>PostEvent</code>)</td>
+          <td class="evidence">components/bas/FileTransferSvc/.../Service References/NotificationService/Reference.svcmap; components/batch/FileTransferManagement/.../app.config (NotificationServiceLocation) + Unity.config</td>
+        </tr>
+        <tr>
+          <td><strong>mms-cms-im-delivered-r30.2609</strong><br><span class="evidence">Identity Management</span></td>
+          <td><span class="pill active">Active</span></td>
+          <td><code>NotificationService</code> &mdash; batches <code>NISTActivityExtract</code>, <code>NISTADUserExtract</code> call it via <code>NotificationServiceProvider</code> (<code>PostEvent</code>)</td>
+          <td class="evidence">components/batch/NISTActivityExtract/.../Service References/NotificationService/Reference.svcmap; NISTADUserExtract/.../Providers/NotificationServiceProvider*.cs</td>
+        </tr>
+        <tr>
+          <td><strong>mms-cms-inx-delivered-r30.2609</strong><br><span class="evidence">Integration</span></td>
+          <td><span class="pill active">Active</span></td>
+          <td><code>NotificationService</code> &mdash; <code>RetryNotification</code> batch (<code>PostEvent</code>); also rewrites subscription <code>DELIVERY_URL</code> to the Notification endpoint</td>
+          <td class="evidence">components/batch/RetryNotification/.../Service References/NotificationService/Reference.svcmap; components/db/oracle/.../MODULE_EVENTS_SUBSCRIPTION update</td>
+        </tr>
+        <tr>
+          <td><strong>mms-cms-adm-delivered-r30.2609</strong><br><span class="evidence">Admin</span></td>
+          <td><span class="pill active">Active</span></td>
+          <td><code>NotificationService</code> &mdash; <code>DataListItemLoad</code> batch via <code>NotificationServiceProvider.PostEvent(...)</code></td>
+          <td class="evidence">components/batch/DataListItemLoad/.../Service References/NotificationService/Reference.svcmap; .../Providers/NotificationServiceProvider.cs (also under components-archive/)</td>
+        </tr>
+        <tr>
+          <td><strong>mms-cms-pl-delivered-r30.2609</strong><br><span class="evidence">Price List</span></td>
+          <td><span class="pill archive">Archived</span></td>
+          <td><code>NotificationService</code> &mdash; loader batches (<code>RevenueLoader</code>, <code>CMSHCPCSLoader</code>, <code>DataListCacheRefresh</code>, <code>FDBNDCMFRLoader</code>) via <code>NotificationServiceProvider</code></td>
+          <td class="evidence">components-archive/batch/RevenueLoader/.../Connected Services/.../NotificationService/Reference.cs + IoC.json registrations (all under components-archive)</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Repositories NOT consuming it (no evidence)</h2>
+    <table>
+      <thead>
+        <tr><th>Repo</th><th>Status</th><th>Reason</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>mms-cms-pc-delivered-r30.2609</strong></td>
+          <td><span class="pill none">No evidence</span></td>
+          <td>No matches found.</td>
+        </tr>
+        <tr>
+          <td><strong>mms-hp-prov-delivered-r30.2609</strong></td>
+          <td><span class="pill none">No evidence</span></td>
+          <td>No matches found.</td>
+        </tr>
+        <tr>
+          <td><strong>mms-cms-cfg-delivered-r30.2609</strong></td>
+          <td><span class="pill none">No evidence</span></td>
+          <td>Only appears inside serialized test-fixture strings referencing PL's provider (<code>StagingReportTests.cs</code>); no actual client code.</td>
+        </tr>
+        <tr>
+          <td><strong>mms-cms-pm-delivered-r30.2609</strong></td>
+          <td><span class="pill none">No evidence</span></td>
+          <td>Only a <code>.gitignore</code> entry for a <code>Connected Services/...NotificationService</code> folder in the <code>MonthlyExpiringLicenseReport</code> batch; the generated reference/code is not present in the repo, so no confirmable consumption.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Notes on evidence quality</h2>
+    <ul>
+      <li><strong>Active consumers</strong> (code under <code>components/</code>): Core, PE, fxfer, IM, INX, ADM.</li>
+      <li><strong>Archived-only consumers</strong> (code under <code>components-archive/</code>): PL (and some PE/ADM copies) &mdash; historically consumed; may not be in the current build.</li>
+      <li>Only <strong>one service</strong> is exposed and consumed across all repos: the <code>NotificationService</code> SOAP endpoint.</li>
+      <li>The dominant operation invoked is <code>PostEvent</code> (posting an event occurrence); Core UX additionally uses <code>CreateEvent</code>, <code>UpdateEvent</code>, <code>GetEvents</code>, <code>GetPostedEvents</code>, and subscription operations.</li>
+    </ul>
+  </section>
+
+  <footer>
+    Notification subsystem consumption report &middot; mms-cms-note-delivered-r30.2609
+  </footer>
+
+</div>
+</body>
+</html>

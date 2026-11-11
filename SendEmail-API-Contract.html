@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SendEmail API Contract</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1f2328;
+    --muted: #57606a;
+    --border: #d0d7de;
+    --accent: #0969da;
+    --code-bg: #f6f8fa;
+    --warn-bg: #fff8c5;
+    --warn-border: #d4a72c;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--fg);
+    background: var(--bg);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+  }
+  .wrapper { max-width: 960px; margin: 0 auto; padding: 32px 24px 80px; }
+  h1 { font-size: 2rem; border-bottom: 1px solid var(--border); padding-bottom: .3em; }
+  h2 { font-size: 1.4rem; margin-top: 2em; border-bottom: 1px solid var(--border); padding-bottom: .3em; }
+  h3 { font-size: 1.1rem; margin-top: 1.6em; }
+  code, pre { font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace; }
+  code { background: var(--code-bg); padding: .15em .4em; border-radius: 6px; font-size: .9em; }
+  pre {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    overflow-x: auto;
+    font-size: .85rem;
+    line-height: 1.45;
+  }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; margin: 1em 0; font-size: .92rem; }
+  th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
+  th { background: var(--code-bg); font-weight: 600; }
+  tr:nth-child(even) td { background: #fafbfc; }
+  .muted { color: var(--muted); }
+  .callout {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 1.2em 0;
+  }
+  .meta { color: var(--muted); font-size: .9rem; margin-top: -.5em; }
+  .path { font-size: .82rem; color: var(--muted); word-break: break-all; }
+  .badge {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    border-radius: 2em;
+    padding: .1em .8em;
+    font-size: .75rem;
+    font-weight: 600;
+    vertical-align: middle;
+  }
+  .no-token { color: #cf222e; font-weight: 600; }
+  footer { margin-top: 3em; border-top: 1px solid var(--border); padding-top: 1em; color: var(--muted); font-size: .85rem; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <h1>SendEmail API Contract <span class="badge">SOAP / WCF</span></h1>
+  <p class="meta">Provider Enrollment &mdash; <code>INotificationService.SendEmail</code> &middot; Generated 2026-11-11</p>
+
+  <div class="callout">
+    <strong>Important:</strong> <code>SendEmail</code> is <strong>not a REST endpoint</strong>. It is a
+    <strong>WCF/SOAP operation</strong> on the external <code>INotificationService</code> that this solution
+    consumes as a client. All details below are taken directly from the generated service reference and
+    <code>Web.config</code> &mdash; no assumptions.
+  </div>
+
+  <h2>Operation definition</h2>
+  <p class="path">components/bas/EnrollmentSvc/HP.HSP.UA3.ProviderEnrollment.BAS.EnrollmentSvc.Business/Service References/NotificationService/Reference.cs</p>
+<pre><code>[OperationContract(Action="http://tempuri.org/INotificationService/SendEmail",
+                   ReplyAction="http://tempuri.org/INotificationService/SendEmailResponse")]
+[FaultContract(typeof(ServiceException),
+               Action="http://tempuri.org/INotificationService/SendEmailServiceExceptionFault",
+               Name="ServiceException",
+               Namespace="http://schemas.datacontract.org/2004/07/HP.HSP.UA3.Core.BAS.CQRS.Base")]
+void SendEmail(string tenantId, string subject, string emailBody,
+               List&lt;Address&gt; addressList, Address fromAddress,
+               MailPriority priority, List&lt;Attachments&gt; attachmentList);</code></pre>
+
+  <table>
+    <tr><th>Attribute</th><th>Value</th></tr>
+    <tr><td>SOAP Action</td><td><code>http://tempuri.org/INotificationService/SendEmail</code></td></tr>
+    <tr><td>Reply Action</td><td><code>http://tempuri.org/INotificationService/SendEmailResponse</code></td></tr>
+    <tr><td>Transport</td><td>SOAP 1.1 over <code>basicHttpBinding</code>, <code>messageEncoding="Text"</code></td></tr>
+  </table>
+
+  <h2>Endpoint &amp; transport binding</h2>
+  <p class="path">components/bas/EnrollmentSvc/HP.HSP.UA3.ProviderEnrollment.BAS.EnrollmentSvc/Web.config</p>
+<pre><code>&lt;endpoint address="https://bas.dev.mapshc.com/HP.HSP.UA3.NotificationServices/R6.0/NotificationService.svc"
+          binding="basicHttpBinding"
+          bindingConfiguration="BasicHttpBinding_INotificationService"
+          contract="NotificationService.INotificationService"
+          name="BasicHttpBinding_INotificationService" /&gt;
+
+&lt;binding name="BasicHttpBinding_INotificationService"
+         closeTimeout="00:00:30" openTimeout="00:00:30"
+         receiveTimeout="00:00:30" sendTimeout="00:00:30"
+         maxReceivedMessageSize="2048000" maxBufferSize="2048000"
+         maxBufferPoolSize="524288"
+         hostNameComparisonMode="StrongWildcard" transferMode="Streamed"&gt;
+  &lt;security mode="Transport"&gt;
+    &lt;transport clientCredentialType="None" /&gt;
+  &lt;/security&gt;
+&lt;/binding&gt;</code></pre>
+
+  <h2>Authentication / Authorization / Token</h2>
+  <ul>
+    <li><strong>Authentication:</strong> None at the message/application layer.
+      <code>security mode="Transport"</code> with <code>clientCredentialType="None"</code> means security
+      relies <strong>solely on the HTTPS/TLS channel</strong> (the <code>https://</code> address). No
+      username/password, NTLM, bearer token, or client certificate is configured for this endpoint.</li>
+    <li><strong>Authorization token / token id:</strong> <span class="no-token">No token is sent.</span>
+      Unlike other bindings in the same config (e.g. <code>ws2007FederationHttpBinding</code> with
+      <code>BearerKey</code>, or <code>Ntlm</code> bindings), the Notification endpoint is
+      <code>clientCredentialType="None"</code>. The only identity-like value passed is the
+      <code>tenantId</code> string <strong>in the SOAP body</strong> (a routing/tenant discriminator, not an
+      auth credential).</li>
+    <li><strong>Evidence:</strong> The call site passes <code>requestor.TenantId</code> only &mdash; no
+      credential object &mdash; confirming no auth token is attached
+      (<span class="path">NotificationHandler.cs</span>, <span class="path">NotificationSender.cs</span>).</li>
+  </ul>
+
+  <h2>Request payload (SOAP body parameters)</h2>
+  <table>
+    <tr><th>Parameter</th><th>Type</th><th>Notes</th></tr>
+    <tr><td><code>tenantId</code></td><td><code>string</code></td><td>Tenant discriminator (set from <code>requestor.TenantId</code>)</td></tr>
+    <tr><td><code>subject</code></td><td><code>string</code></td><td>Email subject</td></tr>
+    <tr><td><code>emailBody</code></td><td><code>string</code></td><td>Email body (SSRS-generated MHTML/HTML in the senders)</td></tr>
+    <tr><td><code>addressList</code></td><td><code>List&lt;Address&gt;</code></td><td>Recipients</td></tr>
+    <tr><td><code>fromAddress</code></td><td><code>Address</code></td><td>Sender; built from <code>AppSettings["FromAddress"]</code></td></tr>
+    <tr><td><code>priority</code></td><td><code>MailPriority</code></td><td>Enum (callers pass <code>Normal</code>)</td></tr>
+    <tr><td><code>attachmentList</code></td><td><code>List&lt;Attachments&gt;</code></td><td>Attachments (empty list when none)</td></tr>
+  </table>
+
+  <h3><code>Address</code> data contract</h3>
+  <p class="muted">Namespace: <code>http://schemas.datacontract.org/2004/07/HP.NotificationServices.DataTransferObjects</code></p>
+  <table>
+    <tr><th>Member</th><th>Type</th></tr>
+    <tr><td><code>DisplayName</code></td><td><code>string</code></td></tr>
+    <tr><td><code>EmailAddress</code></td><td><code>string</code></td></tr>
+    <tr><td><code>MailType</code></td><td><code>MailTypeEnum</code> &rarr; <code>To=0</code>, <code>CC=1</code>, <code>Bcc=2</code></td></tr>
+  </table>
+
+  <h3><code>MailPriority</code> enum</h3>
+  <p class="muted">Namespace: <code>http://schemas.datacontract.org/2004/07/System.Net.Mail</code></p>
+  <table>
+    <tr><th>Member</th><th>Value</th></tr>
+    <tr><td><code>Normal</code></td><td>0</td></tr>
+    <tr><td><code>Low</code></td><td>1</td></tr>
+    <tr><td><code>High</code></td><td>2</td></tr>
+  </table>
+
+  <h3><code>Attachments</code> data contract</h3>
+  <table>
+    <tr><th>Member</th><th>Type</th></tr>
+    <tr><td><code>AttachmentType</code></td><td><code>MediaTypes</code> enum</td></tr>
+    <tr><td><code>ContentId</code></td><td><code>string</code></td></tr>
+    <tr><td><code>Contents</code></td><td><code>byte[]</code></td></tr>
+    <tr><td><code>Name</code></td><td><code>string</code></td></tr>
+  </table>
+
+  <h2>Response</h2>
+  <ul>
+    <li><strong>Success response:</strong> The operation returns <code>void</code>. The SOAP reply is an empty
+      <code>SendEmailResponse</code> body (Action
+      <code>http://tempuri.org/INotificationService/SendEmailResponse</code>). No payload is returned to the
+      caller.</li>
+    <li><strong>Fault response:</strong> On error the service returns a SOAP fault carrying
+      <code>ServiceException</code>.</li>
+  </ul>
+
+  <h3><code>ServiceException</code> fault contract</h3>
+  <p class="muted">Namespace: <code>http://schemas.datacontract.org/2004/07/HP.HSP.UA3.Core.BAS.CQRS.Base</code></p>
+  <table>
+    <tr><th>Member</th><th>Type</th></tr>
+    <tr>
+      <td><code>ErrorCode</code></td>
+      <td><code>StatusCodeType</code> enum: <code>OK=0</code>, <code>CorruptFile=9000</code>,
+        <code>Unauthorized=9010</code>, <code>Duplicate=9020</code>, <code>NotFound=9030</code>,
+        <code>Stale=9040</code>, <code>Error=9999</code></td>
+    </tr>
+    <tr><td><code>ErrorMessages</code></td><td><code>List&lt;string&gt;</code></td></tr>
+  </table>
+
+  <h2>Summary</h2>
+  <p>
+    The consumer wraps this as a simple method call with no credentials &mdash; security is transport-only
+    (TLS), tenant context travels as the <code>tenantId</code> body field, the call returns nothing on
+    success, and failures surface as a <code>ServiceException</code> SOAP fault.
+  </p>
+
+  <footer>
+    Source of truth: generated WCF service reference (<code>Reference.cs</code>) and
+    <code>Web.config</code> in <code>HP.HSP.UA3.ProviderEnrollment.BAS.EnrollmentSvc</code>.
+  </footer>
+
+</div>
+</body>
+</html>
